@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb">
+  <meta name="description" content="PASION Event Scenarios — static frontend design preview with illustrative sample data.">
+  <title>Event Scenarios · PASION</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#overview" aria-label="PASION dashboard">
+        <span class="brand-mark"><svg viewBox="0 0 38 42" aria-hidden="true"><path d="M19 2 35 11v20L19 40 3 31V11L19 2Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m10 27 9-16 9 16M14 22h10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="brand-word">PASION<small>INTELLIGENCE</small></span>
+      </a>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <a href="#overview" class="nav-link"><span class="nav-icon">⌂</span>Overview</a>
+        <a href="#research" class="nav-link"><span class="nav-icon">⌕</span>Research</a>
+        <a href="#watchlist" class="nav-link"><span class="nav-icon">☆</span>Watchlist</a>
+        <a href="#markets" class="nav-link"><span class="nav-icon">◷</span>Markets</a>
+        <div class="nav-section">ANALYTICS</div>
+        <a href="#stock-analytics" class="nav-link"><span class="nav-icon">⌁</span>Stock analytics</a>
+        <a href="#indicators" class="nav-link"><span class="nav-icon">⌇</span>Indicators &amp; VSA</a>
+        <a href="#investment" class="nav-link"><span class="nav-icon">◎</span>Investment research</a>
+        <a href="#trade-planner" class="nav-link"><span class="nav-icon">↗</span>Trade planner</a>
+        <a href="#macro" class="nav-link"><span class="nav-icon">◌</span>Macro regime</a>
+        <a href="#event-scenarios" class="nav-link active" aria-current="page"><span class="nav-icon">✳</span>Event scenarios</a>
+        <div class="nav-section">DATA</div>
+        <a href="#news" class="nav-link"><span class="nav-icon">▤</span>Company news</a>
+        <a href="#reports" class="nav-link"><span class="nav-icon">▧</span>Data &amp; reports</a>
+        <a href="#portfolio" class="nav-link"><span class="nav-icon">◫</span>Portfolio risk</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="plan-card"><span class="plan-spark">✦</span><strong>PASION Pro</strong><p>Explore the full research workspace.</p><button type="button" id="planButton">View preview <span>→</span></button></div>
+        <button class="profile-button" type="button" id="profileButton"><span class="avatar">TD</span><span class="profile-copy"><strong>Tung Than</strong><small>Personal workspace</small></span><span class="more">···</span></button>
+      </div>
+    </aside>
+
+    <main class="main-content" id="event-scenarios">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuButton" aria-label="Open navigation" aria-expanded="false">☰</button>
+        <div class="breadcrumbs"><span>Analytics</span><span class="crumb-slash">/</span><strong>Event Scenarios</strong></div>
+        <div class="topbar-actions"><span class="demo-status"><i></i> Design preview</span><button class="icon-button" aria-label="Notifications">♧<b></b></button><button class="help-button" id="helpButton">Help <span>↗</span></button></div>
+      </header>
+
+      <div class="page-wrap">
+        <div class="demo-banner"><span class="demo-badge">DEMO</span><p><strong>Illustrative design preview.</strong> All figures below are sample values for layout testing — no live sources, backend, or real forecasts are connected.</p><button type="button" id="dismissBanner" aria-label="Dismiss demo notice">×</button></div>
+
+        <section class="page-heading">
+          <div><div class="eyebrow"><span class="eyebrow-dot"></span> SCENARIO ANALYSIS</div><h1>Event Scenarios</h1><p class="page-subtitle">Explore how an event could shape the outlook across a selected horizon.</p></div>
+          <button class="secondary-button" id="resetButton"><span class="reset-icon">↻</span> Reset preview</button>
+        </section>
+
+        <section class="settings-card card">
+          <div class="card-heading"><div><span class="section-index">01</span><div><h2>Research setup</h2><p>Choose the scenario context to preview.</p></div></div><span class="sample-chip"><i></i> Sample configuration</span></div>
+          <div class="form-grid">
+            <label class="field"><span>Category</span><div class="select-wrap"><select id="category"><option>Geopolitics</option><option>Economy</option><option>Markets</option><option>Technology</option><option>Energy</option><option>Politics &amp; Policy</option></select><span>⌄</span></div></label>
+            <label class="field"><span>Event factor</span><div class="select-wrap"><select id="factor"><option>Conflict risk</option><option>Trade disruption</option><option>Sanctions</option></select><span>⌄</span></div></label>
+            <label class="field"><span>Region / entity</span><div class="input-wrap"><span class="pin">◎</span><input id="region" value="Vietnam" maxlength="80" autocomplete="off"></div></label>
+            <div class="field horizon-field"><span>Forecast horizon</span><div class="horizon-toggle" role="group" aria-label="Forecast horizon"><button type="button" data-horizon="short" class="selected" aria-pressed="true">Short-term</button><button type="button" data-horizon="long" aria-pressed="false">Long-term</button></div><div class="select-wrap duration-select"><select id="duration"><option>30 days</option><option>60 days</option><option>90 days</option></select><span>⌄</span></div></div>
+            <label class="field probability-field"><span>Probability question</span><div class="select-wrap"><select id="probabilityQuestion"><option>At the end of the period</option><option>Event occurs at any point</option></select><span>⌄</span></div></label>
+            <button class="primary-button" id="analyzeButton"><span>Preview scenarios</span><span class="button-arrow">→</span></button>
+          </div>
+        </section>
+
+        <section class="results-card card" aria-labelledby="resultsHeading" aria-live="polite">
+          <div class="results-topline"><div class="results-title"><div class="section-index result-index">02</div><div><div class="eyebrow">OUTLOOK <span class="eyebrow-line"></span></div><h2 id="resultsHeading">Scenario probabilities</h2><p id="resultContext">Conflict risk · Vietnam · 30 days · End of period</p></div></div><div class="result-actions"><span class="illustrative-label"><span>✳</span> Illustrative</span><button class="icon-button more-results" aria-label="More result options">···</button></div></div>
+          <div class="summary-strip"><div class="summary-icon">✳</div><div><strong>Three possible outcomes</strong><p>Mutually exclusive scenarios. Probabilities sum to 100%.</p></div><div class="total-probability"><small>TOTAL PROBABILITY</small><strong id="totalValue">100<span>%</span></strong></div></div>
+          <div class="scenario-list" id="scenarioList">
+            <article class="scenario-row lead-row" data-index="0"><div class="scenario-rank">01</div><div class="scenario-body"><div class="scenario-top"><div><h3>Conditions improve</h3><p>Risk eases and conditions move in a favorable direction.</p></div><div class="scenario-value"><strong>42</strong><span>%</span></div></div><div class="probability-track"><span class="track-fill positive" style="width:42%"></span></div><div class="scenario-meta"><span class="outcome-tag positive-tag"><i></i> FAVORABLE</span><span class="share-label">of modeled outcomes</span></div></div></article>
+            <article class="scenario-row" data-index="1"><div class="scenario-rank">02</div><div class="scenario-body"><div class="scenario-top"><div><h3>Conditions remain broadly stable</h3><p>No material change from the current baseline.</p></div><div class="scenario-value"><strong>36</strong><span>%</span></div></div><div class="probability-track"><span class="track-fill neutral" style="width:36%"></span></div><div class="scenario-meta"><span class="outcome-tag neutral-tag"><i></i> STABLE</span><span class="share-label">of modeled outcomes</span></div></div></article>
+            <article class="scenario-row" data-index="2"><div class="scenario-rank">03</div><div class="scenario-body"><div class="scenario-top"><div><h3>Conditions deteriorate</h3><p>Risk increases and conditions move in an adverse direction.</p></div><div class="scenario-value"><strong>22</strong><span>%</span></div></div><div class="probability-track"><span class="track-fill negative" style="width:22%"></span></div><div class="scenario-meta"><span class="outcome-tag negative-tag"><i></i> ADVERSE</span><span class="share-label">of modeled outcomes</span></div></div></article>
+          </div>
+          <footer class="results-footer"><span><i class="footer-lock">◈</i> Preview only · no live research performed</span><button type="button" id="copyButton">Copy scenario summary <span>⧉</span></button></footer>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="note-card card"><div class="note-symbol">i</div><div><h3>About this preview</h3><p>This standalone frontend demonstrates the Event Scenarios layout and interactions. It contains no real source collection, probability model, or connected account data.</p></div><span class="note-mark">PASION / 01</span></article>
+          <article class="horizon-card card"><div class="horizon-head"><div><span class="eyebrow">HORIZON AT A GLANCE</span><h3>Preview distribution</h3></div><span class="horizon-pill" id="horizonPill">30 DAYS</span></div><div class="mini-chart" aria-label="Illustrative distribution chart"><div class="chart-labels"><span>Favorable</span><span>Stable</span><span>Adverse</span></div><div class="chart-columns"><div class="chart-column"><span class="column-value">42%</span><i style="height:72%"></i></div><div class="chart-column"><span class="column-value">36%</span><i class="bar-neutral" style="height:61%"></i></div><div class="chart-column"><span class="column-value">22%</span><i class="bar-negative" style="height:39%"></i></div></div><div class="chart-baseline"><span></span><span></span><span></span></div></div></article>
+        </section>
+
+        <footer class="page-footer"><span>© 2026 PASION Intelligence</span><span>Static frontend preview <i></i> No backend connected</span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop" id="modalBackdrop" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="modalClose" aria-label="Close dialog">×</button><div class="modal-icon">✳</div><h2 id="modalTitle">Preview only</h2><p id="modalText">This page is a standalone visual demo. It does not connect to your account, backend, or live data sources.</p><button class="primary-button modal-ok" id="modalOk">Got it <span class="button-arrow">→</span></button></section></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
