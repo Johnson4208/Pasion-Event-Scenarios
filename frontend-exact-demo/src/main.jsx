@@ -96,7 +96,7 @@ function App(){
     <div className="tabs" data-active={tab} aria-label={t('Account action')}>{[['signin','Sign in'],['register','Register']].map(([value,label])=><button key={value} type="button" className={tab===value?'active':''} aria-pressed={tab===value} onClick={()=>{setTab(value);setNotice(null)}}>{t(label)}</button>)}</div>
     <form onSubmit={submit} key={tab}>
      {tab==='register'&&<div className="field"><label htmlFor="name">{t('Full name')}</label><input id="name" name="name" placeholder={t('Your full name')} autoComplete="name" required maxLength={100}/></div>}
-     <div className="field"><label htmlFor="email">{t('Email address')}</label><input id="email" name="email" type="email" placeholder="you@company.com" autoComplete="email" required maxLength={254}/></div>
+     <div className="field"><label htmlFor="email">{t('Email address')}</label><input id="email" name="email" type="email" placeholder="demo@example.com" autoComplete="email" required maxLength={254}/></div>
      <div className="field"><label htmlFor="password">{t('Password')}</label><div className="password-input"><input id="password" name="password" type={visible?'text':'password'} placeholder={t('Enter your password')} autoComplete={tab === 'signin' ? 'current-password' : 'new-password'} minLength={tab === 'register' ? 8 : undefined} maxLength={1024} required/><button type="button" onClick={()=>setVisible(!visible)} aria-label={t(visible?'Hide password':'Show password')}>{t(visible?'Hide':'Show')}</button></div></div>
      {tab === 'register' && <div className="field"><label htmlFor="confirmPassword">{t('Confirm password')}</label><input id="confirmPassword" name="confirmPassword" type={visible ? 'text' : 'password'} placeholder={t('Confirm your password')} autoComplete="new-password" required minLength={8} maxLength={1024} /></div>}{tab === 'signin' && <label className="remember"><input type="checkbox" name="remember" value="true"/><span>{t('Keep me signed in for 7 days')}</span></label>}
      {notice&&<p className={'notice '+notice.type} role={notice.type==='error'?'alert':'status'}>{t(notice.message)}</p>}
@@ -112,3 +112,4 @@ function App(){
  </main>
 }
 createRoot(document.getElementById('root')).render(<PreferencesProvider><App/></PreferencesProvider>);
+
