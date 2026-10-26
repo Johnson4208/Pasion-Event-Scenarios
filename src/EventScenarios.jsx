@@ -3,8 +3,20 @@ import {usePreferences} from './Preferences';
 import './event-scenarios.scss';
 import EventScenarioComparison from './EventScenarioComparison';
 import EventSourceStatus from './EventSourceStatus';
-import {referenceForecast,seriesForecast,experimentalEstimate,researchShareAvailable,queryKey,sourceUrl,readStudies as readValidStudies,studySnapshot,HORIZONS} from './eventScenarios.js';
+import {referenceForecast,seriesForecast,researchShareAvailable,queryKey,sourceUrl,readStudies as readValidStudies,studySnapshot,HORIZONS} from './eventScenarios.js';
 
+
+function exactSharePercentages(rows){
+ const values=rows.map(row=>row?.scenario_share_percent);
+ if(!values.length||values.some(value=>typeof value!=='number'||!Number.isFinite(value)||value<0))return [];
+ const total=values.reduce((sum,value)=>sum+value,0);
+ if(Math.abs(total-100)>.05)return [];
+ const units=values.map(value=>Math.floor(value*10+1e-9));
+ const remainder=1000-units.reduce((sum,value)=>sum+value,0);
+ const order=values.map((value,index)=>({index,fraction:value*10-Math.floor(value*10+1e-9)})).sort((a,b)=>b.fraction-a.fraction);
+ for(let i=0;i<remainder;i++)units[order[i%order.length].index]++;
+ return units.map(value=>value/10);
+}
 
 const categories={
  'Banking & Credit':['Credit conditions','Bank lending','Central bank policy'],
@@ -27,21 +39,21 @@ export default function EventScenarios({storageKey='pasion-event-scenarios'}){
  const [category,setCategory]=useState('Geopolitics'),[factor,setFactor]=useState('Conflict risk'),[focus,setFocus]=useState('Vietnam');
  const [term,setTerm]=useState('short'),[horizon,setHorizon]=useState('30 days');
  const [result,setResult]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState('');
- const [evidenceOpen,setEvidenceOpen]=useState(null),[previousResult,setPreviousResult]=useState(null);
+ const [evidenceOpen,setEvidenceOpen]=useState(null);
  const key=storageKey+'-event-research';
  const [archive,setArchive]=useState(()=>({key,studies:readValidStudies(key)}));
  const studies=archive.key===key?archive.studies:[];
  const setStudies=update=>setArchive(old=>({key,studies:update(old.key===key?old.studies:[])}));
  const request=useRef(null);
  const [basis,setBasis]=useState('END_STATE');
- const [metric,setMetric]=useState('estimate');
+ const [metric,setMetric]=useState('share');
  const [failedCoverage,setFailedCoverage]=useState(null);
  const queryContext={category,factor,focus:focus.trim()||'World',horizon,basis};
  const identity=queryKey(queryContext);
  const activeIdentity=useRef(identity);activeIdentity.current=identity;
- useEffect(()=>{setArchive({key,studies:readValidStudies(key)});setResult(null);setPreviousResult(null);setLoading(false);return()=>{request.current?.abort();request.current=null;};},[key]);
+ useEffect(()=>{setArchive({key,studies:readValidStudies(key)});setResult(null);setLoading(false);return()=>{request.current?.abort();request.current=null;};},[key]);
  useEffect(()=>()=>{request.current?.abort();request.current=null;},[]);
- useEffect(()=>{setError('');setFailedCoverage(null);setPreviousResult(null);},[identity]);
+ useEffect(()=>{setError('');setFailedCoverage(null);},[identity]);
  const [savedOnly,setSavedOnly]=useState(false);
  useEffect(()=>{if(archive.key===key)try{localStorage.setItem(key,JSON.stringify(archive.studies))}catch{setError('Browser storage is unavailable or full. This report is kept only in this tab.');}},[key,archive]);
  useEffect(()=>{
@@ -55,14 +67,13 @@ export default function EventScenarios({storageKey='pasion-event-scenarios'}){
  const forecast=referenceForecast(result)||seriesForecast(result);
  const historical=!!forecast;
  const scenarioDistribution=result?.dynamic_scenarios?.scenario_distribution;
- const hasEligibleNews=(result?.items||[]).some(item=>['DIRECT_SCOPE','GLOBAL_SCOPE'].includes(item.geographic_relation));
  const researchAvailable=researchShareAvailable(result);
  const ranked=result?.dynamic_scenarios?.ranked_scenarios||[];
- const oldRanked=previousResult?.dynamic_scenarios?.ranked_scenarios||[];
- const experimentalAvailable=hasEligibleNews&&ranked.some(sc=>experimentalEstimate(sc));
+ const displayShares=researchAvailable?exactSharePercentages(ranked):[];
+ const displayMetric=metric==='share'&&researchAvailable?'share':'evidence';
  const ready=!!result&&!loading;
- const statusLabel=historical?'Historical probability estimates':experimentalAvailable?'Experimental · assumption-based':'Probability unavailable';
- const noEligible=!!result&&!loading&&!historical&&!experimentalAvailable;
+ const statusLabel=historical?'Historical model':researchAvailable?'Research split · 100%':'Evidence balance';
+ const noEligible=!!result&&!loading&&!historical&&!ranked.length;
  function changeTerm(value){setTerm(value);setHorizon(value==='short'?'30 days':'180 days');setResult(null);setError('');}
  function changeCategory(value){setCategory(value);setFactor(categories[value][0]);setResult(null);}
  async function runAnalysis(){
@@ -95,7 +106,6 @@ export default function EventScenarios({storageKey='pasion-event-scenarios'}){
    const combined=usePrepared?{...data,scenario_forecast:model.value.scenario_forecast,forecast_recording:model.value.forecast_recording}:data;
    combined.items=Array.isArray(combined.items)?combined.items.filter(x=>x&&typeof x==='object'):[];
    combined.dynamic_scenarios={...combined.dynamic_scenarios,ranked_scenarios:Array.isArray(combined.dynamic_scenarios?.ranked_scenarios)?combined.dynamic_scenarios.ranked_scenarios.filter(x=>x&&typeof x.id==='string'):[]};
-   setPreviousResult(result&&queryKey(result)===submittedIdentity?result:null);
    setResult(combined);
    if(news.status==='rejected'){setError('News collection failed. Historical estimates, if available, remain visible.');setFailedCoverage(news.reason.coverage||{status:'UNAVAILABLE'});}
    else if(model.status==='rejected')setError('Historical preparation failed. The sourced news analysis remains available.');
@@ -113,18 +123,13 @@ export default function EventScenarios({storageKey='pasion-event-scenarios'}){
   const long=HORIZONS.long.some(([value])=>value===study.horizon);
   if(![...HORIZONS.short,...HORIZONS.long].some(([value])=>value===study.horizon))return;
   setCategory(study.category);setFactor(study.factor);setFocus(study.focus||'World');setHorizon(study.horizon);
-  setTerm(long?'long':'short');setBasis(study.basis||'END_STATE');setPreviousResult(null);setResult(snapshot);
+  setTerm(long?'long':'short');setBasis(study.basis||'END_STATE');setResult(snapshot);
  }
  function updateStudy(id,field,value){setStudies(s=>s.map(x=>x.id===id?{...x,[field]:value}:x));}
  const evidenceItems=(evidenceOpen?.id?evidenceOpen.sources:result?.items)||[];
  return <div className="analytics-page event-scenarios-page events-refined">
-  <section className="home-card events-intro-card">
-   <div><span className="events-eyebrow">PASION / EVENT INTELLIGENCE</span><h2>Dynamic Scenario Forecasting</h2>
-    <p>Track plausible economic paths with sourced evidence, separate forecast horizons and clear model eligibility.</p></div>
-   <aside className="events-research-status"><strong>DATA INTEGRITY</strong><span>{loading?'Updating evidence…':ready?'Published-source research · unverified':'Awaiting a sourced analysis'}</span></aside>
-  </section>
   <section className="home-card events-question-card">
-   <div className="events-section-kicker">RESEARCH CONFIGURATION</div>
+   <div className="events-section-kicker">RESEARCH SETTINGS</div>
    <div className="events-question-grid">
     <label>Category<select disabled={loading} value={category} onChange={e=>changeCategory(e.target.value)}>{Object.keys(categories).map(x=><option value={x} key={x}>{t(x)}</option>)}</select></label>
     <label>Factor<select disabled={loading} value={factor} onChange={e=>{setFactor(e.target.value);setResult(null)}}>{categories[category].map(x=><option value={x} key={x}>{t(x)}</option>)}</select></label>
@@ -136,7 +141,7 @@ export default function EventScenarios({storageKey='pasion-event-scenarios'}){
   </section>
   {error&&<section role="alert" className="home-card events-error">Source research unavailable: {error}</section>}
   <section className={'home-card events-result-card events-ranking-shell'+(!showExpanded?' events-ranking-compact':'')} aria-label="Scenario ranking" aria-busy={loading}>
-   <div className="events-ranking-heading"><div><span className="events-section-kicker">SCENARIO OUTLOOK / {term==='short'?'SHORT-TERM':'LONG-TERM'}</span><h2>Ranked scenario pathways</h2>
+   <div className="events-ranking-heading"><div><span className="events-section-kicker">RESULTS</span><h2>Scenario outlook</h2>
     <p>{factor} · {focus||'World'} · {HORIZONS[term].find(x=>x[0]===horizon)?.[1]}{result?.generated_at?' · Report as of '+formatDate(result.generated_at):''}</p></div>
     {showExpanded&&<div className="events-ranking-actions"><span className="events-model-flag">{statusLabel}</span>
       <button type="button" onClick={()=>setEvidenceOpen({id:null,sources:result?.items||[]})} disabled={!result?.items?.length}>Evidence <span aria-hidden="true">↗</span></button>
@@ -145,37 +150,37 @@ export default function EventScenarios({storageKey='pasion-event-scenarios'}){
    {!showExpanded&&<div className="events-initial-summary" role="status"><div className="events-initial-value"><strong>—</strong><span>Not calculated</span></div><p>Choose your research settings and select <strong>Analyze</strong> to reveal the scenario ranking.</p></div>}
    {showExpanded&&<>
    {forecast&&<EventScenarioComparison model={forecast} recording={result.forecast_recording} t={t} language={language} formatDate={formatDate}/>}
-   {!forecast&&result?.scenario_forecast&&<div className="events-model-diagnostic" role="status"><strong>Historical probability model unavailable</strong><p>{result.scenario_forecast.reason_code||'The returned model did not pass validation.'} · Historical observations for this exact question and horizon are required. News estimates below use explicit assumptions instead.</p></div>}
-   {noEligible&&<div className="events-empty-diagnostic" role="status"><strong>{scenarioDistribution?.status==='WITHHELD_CONCENTRATED_EVIDENCE'?'Evidence leans strongly one way — probability not validated':'Not enough evidence to calculate'}</strong><p>Review the source roles below. Missing estimates are shown as —, never as a zero probability.</p></div>}
+   {!historical&&<div className="events-model-diagnostic" role="status">
+    <div><strong>{researchAvailable?'Historical model unavailable':'Probability split unavailable'}</strong><span>{researchAvailable?'Showing a relative evidence share, not a calibrated forecast.':scenarioDistribution?.status==='WITHHELD_CONCENTRATED_EVIDENCE'?'Evidence is too concentrated for a 100% split. Showing evidence balance.':'Not enough independent evidence for a 100% split. Showing evidence balance.'}</span></div>
+    {result?.scenario_forecast&&<details><summary>Why?</summary><code>{result.scenario_forecast.reason_code||'No reviewed historical model covers this query.'}</code></details>}
+   </div>}
+   {noEligible&&(historical||!result?.scenario_forecast)&&<div className="events-empty-diagnostic" role="status"><strong>Not enough evidence</strong><span>No scenario ranking is available for this query.</span></div>}
    {!!ranked.length&&<>
-   <div className="events-metric-controls"><h3>News evidence pathways</h3><label>Display metric<select aria-label="Display metric" value={metric} onChange={e=>setMetric(e.target.value)}><option value="estimate">Experimental estimate</option><option value="evidence">Evidence balance</option><option value="share">Relative news share</option></select></label></div>
-   <p className="events-ranked-note">{metric==='estimate'?'Experimental, assumption-based estimates use a 50% prior for each overlapping pathway. They are not validated event probabilities, do not add to 100%, and are not calibrated to the selected duration. The range shows sensitivity to 25%–75% priors, not a confidence interval.':metric==='evidence'?'Evidence balance = 100 × (supporting weight − opposing weight) / eligible evidence weight. It is not a probability.':'Relative allocation of net supporting news across overlapping pathways. Shares are not event probabilities; concentrated evidence is not normalized into artificial certainty.'} Pathways are ranked by evidence balance, not ranked by probability.</p>
-   <div className="events-ranked-list">{ranked.map(sc=>{
-      const estimate=hasEligibleNews?experimentalEstimate(sc):null;
+   <div className="events-metric-controls"><h3>News pathways</h3><label>View<select aria-label="Display metric" value={displayMetric} onChange={e=>setMetric(e.target.value)}><option value="share" disabled={!researchAvailable}>Scenario share · totals 100%</option><option value="evidence">Evidence balance</option></select></label></div>
+   <p className="events-ranked-note">{displayMetric==='share'?'Relative evidence share; totals 100%, but this is not a calibrated forecast.':'A 100% split is unavailable. Showing signed evidence balance in points, not probability.'}</p>
+   <div className="events-ranked-list">{ranked.map((sc,index)=>{
       const balance=typeof sc.support_index==='number'&&Number.isFinite(sc.support_index)&&Math.abs(sc.support_index)<=1?sc.support_index*100:null;
-      const share=researchAvailable&&sc.scenario_share_status==='NORMALIZED_EXPERIMENTAL_UNCALIBRATED'?sc.scenario_share_percent:null;
-      const value=metric==='estimate'?(estimate?estimate.probability_estimate*100:null):metric==='evidence'?balance:share;
-      const label=value===null?'—':value.toFixed(1)+(metric==='evidence'?' pts':'%'+(metric==='estimate'?'*':''));
-      const old=oldRanked.find(x=>x.id===sc.id);
-      const delta=typeof old?.support_index==='number'&&balance!==null?Math.round(balance-100*old.support_index):null;
-      const reason=sc.horizon_eligible===false?'Outside selected horizon':!hasEligibleNews?'No in-scope evidence':estimate?'Assumption-based estimate':'Insufficient directional evidence';
+      const share=researchAvailable?displayShares[index]??null:null;
+      const value=displayMetric==='share'?share:balance;
+      const label=value===null?'—':value.toFixed(1)+(displayMetric==='share'?'%':' pts');
+      const sourceCount=(sc.supporting_source_count||0)+(sc.opposing_source_count||0)+(sc.context_source_count||0);
+      const reason=displayMetric==='share'?'Relative evidence share':'Signed evidence balance';
       return <article key={sc.id} className="events-ranked-item">
        <span className="events-rank-number">{String(sc.rank).padStart(2,'0')}</span>
-       <div className="events-rank-main"><div className="events-rank-heading"><div><strong>{sc.title}</strong><p>{sc.definition}</p></div><span className="events-rank-value" title={value===null?reason:metric==='estimate'?'Experimental estimate, not a validated probability':metric==='evidence'?'Signed evidence balance':'Relative news share'}>{label}</span></div>
-        <div className="events-ranked-track" role="img" aria-label={value===null?reason:metric+' '+label}><i style={{width:value===null?'0%':Math.min(100,Math.abs(value))+'%',background:metric==='evidence'&&value<0?'#b45353':undefined}}/></div>
-        {metric==='estimate'&&estimate&&<p className="events-estimate-range">Prior sensitivity: {(estimate.prior_sensitivity_range[0]*100).toFixed(1)}–{(estimate.prior_sensitivity_range[1]*100).toFixed(1)}% · {estimate.evidence_cluster_count} distinct stories · independence unverified</p>}
-        <div className="events-rank-foot"><span>{reason} · {sc.supporting_source_count||0} supports · {sc.opposing_source_count||0} challenges · {sc.context_source_count||0} context{delta===null?'':' · evidence revised '+(delta>0?'+':'')+delta+' pts'}</span>
+       <div className="events-rank-main"><div className="events-rank-heading"><div><strong>{sc.title}</strong><p>{sc.definition}</p></div><span className="events-rank-value" title={value===null?reason:displayMetric==='share'?'Relative evidence allocation, not calibrated probability':'Evidence balance, not probability'}>{label}</span></div>
+        <div className="events-ranked-track" role="img" aria-label={value===null?reason:displayMetric+' '+label}><i style={{width:value===null?'0%':Math.min(100,Math.abs(value))+'%',background:displayMetric==='evidence'&&value<0?'#b45353':undefined}}/></div>
+        <div className="events-rank-foot"><span>{sc.supporting_source_count||0} support · {sc.opposing_source_count||0} challenge · {sourceCount} linked sources</span>
          <button type="button" onClick={()=>setEvidenceOpen({id:sc.id,title:sc.title,sources:Array.isArray(sc.sources)?sc.sources:[]})}>Evidence <span aria-hidden="true">↗</span></button></div>
        </div>
       </article>;
     })}</div>
-   {metric==='share'&&researchAvailable&&<div className="events-distribution-total" role="status"><span>Total news share</span><strong>{scenarioDistribution.total_percent.toFixed(1)}%</strong></div>}
+   {displayMetric==='share'&&researchAvailable&&<div className="events-distribution-total" role="status"><span>Total scenario allocation</span><strong>{displayShares.reduce((sum,value)=>sum+value,0).toFixed(1)}%</strong></div>}
    </>}
    </>}
    {loading&&<div className="events-loading-overlay" role="status" aria-live="polite"><div className="events-loading-spinner" aria-hidden="true"/><strong>Analyzing new evidence</strong><span>Retrieving sources and comparing scenario pathways…</span></div>}
   </section>
   {(result||failedCoverage)&&<EventSourceStatus result={result} query={queryContext} failedCoverage={failedCoverage} showArchive={false} t={t} formatDate={formatDate}/>}
-  <section className="home-card events-forecast-lab"><header className="events-lab-heading"><div><span className="events-section-kicker">RESEARCH ARCHIVE</span><h3>Saved investigations</h3><p>Local saved reports, separate from the independent public-news agent.</p></div><div className="events-history-tabs"><button aria-pressed={!savedOnly} onClick={()=>setSavedOnly(false)}>All</button><button aria-pressed={savedOnly} onClick={()=>setSavedOnly(true)}>Saved ({studies.filter(x=>x.saved).length})</button></div></header>
+  <section className="home-card events-forecast-lab"><header className="events-lab-heading"><div><span className="events-section-kicker">RESEARCH ARCHIVE</span><h3>Saved investigations</h3><p>Saved in this browser.</p></div><div className="events-history-tabs"><button aria-pressed={!savedOnly} onClick={()=>setSavedOnly(false)}>All</button><button aria-pressed={savedOnly} onClick={()=>setSavedOnly(true)}>Saved ({studies.filter(x=>x.saved).length})</button></div></header>
    <div className="events-history-list">{studies.filter(x=>!savedOnly||x.saved).map(s=><article className="events-history-item" key={s.id}><header><div><strong>{s.factor} · {s.focus}</strong><p>{s.horizon} · {s.createdAt?new Date(s.createdAt).toLocaleString():'Date unavailable'}</p></div><div className="events-history-actions"><button disabled={loading} onClick={()=>openStudy(s)}>Open report</button><button onClick={()=>updateStudy(s.id,'saved',!s.saved)}>{s.saved?'★':'☆'}</button><button onClick={()=>setStudies(x=>x.filter(item=>item.id!==s.id))}>×</button></div></header></article>)}</div>
   </section>
   {evidenceOpen&&<div className="events-modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEvidenceOpen(null)}}><div role="dialog" aria-modal="true" aria-labelledby="events-evidence-title" className="events-evidence-modal">
