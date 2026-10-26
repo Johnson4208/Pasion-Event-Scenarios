@@ -1,0 +1,10 @@
+import React,{useEffect,useState} from 'react';
+import {usePreferences} from './Preferences';
+
+export default function NewsReviewQueue({onExpired}){
+ const {t}=usePreferences();const [rows,setRows]=useState([]),[notice,setNotice]=useState('');
+ async function api(url,body){const r=await fetch(url,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const d=await r.json();if(r.status===401||r.status===403)onExpired?.(d.message);if(!r.ok)throw Error(d.message||'News review unavailable');return d;}
+ async function load(){try{setRows((await api('/api/admin/news/proposals')).proposals);}catch(e){setNotice(e.message);}}
+ useEffect(()=>{load();},[]);
+ return <section><h2>{t('News research review')}</h2><p>{t('These proposals were explicitly submitted for review. Approval permits a separate forecast-driver review; it does not change valuation or historical financial facts.')}</p><button onClick={load}>{t('Refresh proposals')}</button><p role="status">{notice}</p>{!rows.length&&<p>{t('No submitted proposals.')}</p>}{rows.map(p=><article className="home-card" style={{padding:'1rem',marginTop:'1rem'}} key={p.id}><h3>{p.ticker} · {p.driver}</h3><p>{p.proposed_change} · {p.rationale}</p><p>{p.claim.text} · {p.claim.review.status}</p><a href={p.source_url} target="_blank" rel="noreferrer">{t('Source article')}</a>{p.claim.review.relations.map((r,i)=><p key={i}>{r.stance}: {r.excerpt} · <a href={r.url} target="_blank" rel="noreferrer">{r.provider}</a> · {r.explanation}</p>)}<form onSubmit={async e=>{e.preventDefault();try{const d=await api('/api/admin/news/decide',{...Object.fromEntries(new FormData(e.currentTarget)),proposal_id:p.id});setNotice(`${d.decision.decision}: ${d.decision.note}`);}catch(err){setNotice(err.message);}}}><label>{t('Review decision')}<select name="decision"><option value="REJECTED">{t('Reject proposal')}</option><option value="APPROVED_FOR_DRIVER_REVIEW">{t('Approve for separate driver review')}</option></select></label><label>{t('Review rationale')}<input name="note" required maxLength="200"/></label><button>{t('Record review decision')}</button></form></article>)}</section>;
+}
