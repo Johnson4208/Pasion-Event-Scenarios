@@ -1,0 +1,222 @@
+[
+  {
+    "ticker": "VNINDEX",
+    "name": "VNINDEX",
+    "price": 1274.32,
+    "change": 0.62,
+    "unit": "Index points",
+    "region": "Vietnam",
+    "category": "stocks",
+    "index": 0,
+    "precision": 2
+  },
+  {
+    "ticker": "SPX",
+    "name": "S&P 500",
+    "price": 5996.76,
+    "change": 1.1,
+    "unit": "Index points",
+    "region": "United States",
+    "category": "stocks",
+    "index": 1,
+    "precision": 2
+  },
+  {
+    "ticker": "IXIC",
+    "name": "NASDAQ",
+    "price": 19386.07,
+    "change": -0.64,
+    "unit": "Index points",
+    "region": "United States",
+    "category": "stocks",
+    "index": 2,
+    "precision": 2
+  },
+  {
+    "ticker": "DJI",
+    "name": "DOW JONES",
+    "price": 42732.13,
+    "change": 0.78,
+    "unit": "Index points",
+    "region": "United States",
+    "category": "stocks",
+    "index": 3,
+    "precision": 2
+  },
+  {
+    "ticker": "XAU",
+    "name": "Gold",
+    "price": 2435.6,
+    "change": 0.9,
+    "unit": "USD / oz",
+    "region": "Commodities",
+    "category": "commodities",
+    "index": 4,
+    "precision": 2
+  },
+  {
+    "ticker": "FTSE",
+    "name": "FTSE 100",
+    "price": 8427.67,
+    "change": 0.42,
+    "unit": "Index points",
+    "region": "United Kingdom",
+    "category": "stocks",
+    "index": 5,
+    "precision": 2
+  },
+  {
+    "ticker": "DAX",
+    "name": "DAX",
+    "price": 18686.6,
+    "change": -0.35,
+    "unit": "Index points",
+    "region": "Germany",
+    "category": "stocks",
+    "index": 6,
+    "precision": 2
+  },
+  {
+    "ticker": "CAC",
+    "name": "CAC 40",
+    "price": 8028.43,
+    "change": 0.28,
+    "unit": "Index points",
+    "region": "France",
+    "category": "stocks",
+    "index": 7,
+    "precision": 2
+  },
+  {
+    "ticker": "N225",
+    "name": "NIKKEI 225",
+    "price": 38920.26,
+    "change": 1.24,
+    "unit": "Index points",
+    "region": "Japan",
+    "category": "stocks",
+    "index": 8,
+    "precision": 2
+  },
+  {
+    "ticker": "HSI",
+    "name": "HANG SENG",
+    "price": 18412.28,
+    "change": -1.08,
+    "unit": "Index points",
+    "region": "Hong Kong",
+    "category": "stocks",
+    "index": 9,
+    "precision": 2
+  },
+  {
+    "ticker": "STOXX50",
+    "name": "EURO STOXX 50",
+    "price": 4983.67,
+    "change": 0.56,
+    "unit": "Index points",
+    "region": "Europe",
+    "category": "stocks",
+    "index": 10,
+    "precision": 2
+  },
+  {
+    "ticker": "SSE",
+    "name": "Shanghai Composite",
+    "price": 3324.2,
+    "change": 0.45,
+    "unit": "Index points",
+    "region": "China",
+    "category": "stocks",
+    "index": 11,
+    "precision": 2
+  },
+  {
+    "ticker": "BRENT",
+    "name": "Brent oil",
+    "price": 82.48,
+    "change": -0.92,
+    "unit": "USD / barrel",
+    "region": "Commodities",
+    "category": "commodities",
+    "index": 12,
+    "precision": 2
+  },
+  {
+    "ticker": "XAG",
+    "name": "Silver",
+    "price": 30.61,
+    "change": 1.36,
+    "unit": "USD / oz",
+    "region": "Commodities",
+    "category": "commodities",
+    "index": 13,
+    "precision": 2
+  },
+  {
+    "ticker": "BTC",
+    "name": "Bitcoin",
+    "price": 64280.45,
+    "change": 2.41,
+    "unit": "USD / coin",
+    "region": "Digital assets",
+    "category": "crypto",
+    "index": 14,
+    "precision": 2
+  },
+  {
+    "ticker": "ETH",
+    "name": "Ethereum",
+    "price": 3486.12,
+    "change": -1.18,
+    "unit": "USD / coin",
+    "region": "Digital assets",
+    "category": "crypto",
+    "index": 15,
+    "precision": 2
+  },
+  {
+    "ticker": "SOL",
+    "name": "Solana",
+    "price": 146.82,
+    "change": 3.62,
+    "unit": "USD / coin",
+    "region": "Digital assets",
+    "category": "crypto",
+    "index": 16,
+    "precision": 2
+  },
+  {
+    "ticker": "BNB",
+    "name": "BNB",
+    "price": 592.4,
+    "change": 0.86,
+    "unit": "USD / coin",
+    "region": "Digital assets",
+    "category": "crypto",
+    "index": 17,
+    "precision": 2
+  },
+  {
+    "ticker": "XRP",
+    "name": "XRP",
+    "price": 0.5246,
+    "change": -0.74,
+    "unit": "USD / coin",
+    "region": "Digital assets",
+    "category": "crypto",
+    "index": 18,
+    "precision": 4
+  },
+  {
+    "ticker": "DOGE",
+    "name": "Dogecoin",
+    "price": 0.1284,
+    "change": 1.95,
+    "unit": "USD / coin",
+    "region": "Digital assets",
+    "category": "crypto",
+    "index": 19,
+    "precision": 4
+  }
+]

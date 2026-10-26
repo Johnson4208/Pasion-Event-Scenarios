@@ -1,0 +1,11 @@
+# F13 watch and alert events
+
+Dashboard/Portfolio retains the demonstrative browser workspace and adds a private server watch/alert desk. WATCH, PRICE_ALERT and RESEARCH_BOOKMARK intents are explicit; ORDER/HOLDING/PLAN cannot be created by this service. Existing actual holdings and trade drafts remain in their separate F08/F07 services. Import requires an explicit consent checkbox and marks browser records unverified. No automatic cross-device migration occurs.
+
+Authenticated `/api/research/watch` GET lists own intents/events/acknowledgments; POST creates an explicit intent. `/evaluate` POST reads the reviewed F07 quote registry, checks currency, clock, session and freshness, then records immutable evaluations. Fingerprints combine intent ID, source version/as-of and reason with an owner-scoped SQL uniqueness constraint. Replay cannot duplicate a notification. New quote versions are throttled by alert/source (default one hour). `/acknowledge` POST requires event ownership and preserves acknowledgment time. Delivery is in-app only; no external notifications are sent. No scheduled polling/provider was supplied; evaluation is explicitly invoked. Missing or stale quotes never trigger. Sample DashboardAlerts remains demonstrative and separate.
+
+Research bookmarks are explicit reference IDs; article bookmarks remain in F11. Earnings/volatility/filing/model-expiry triggers are optional future adapters, not inferred from sample feeds. No legacy account schema imported. Production identity/storage review still required. Existing list can be sorted; intent records/event log are append-only in this thin release, with no alert-edit/delete workflow yet.
+
+Tests cover owner isolation, replay, quote expiry, source-specific throttle, acknowledgments and consent. Production build and focused browser consent/evaluation checks required before activation.
+
+Validation: 179-test backend regression run passed; final focused watch/API checks passed (3 tests), and 4 focused F01/F03/F13 browser checks passed. Production build passed with the existing bundle warning. F12/F13 routes were activated by restarting the local project; frontend HTTP 200 and unauthenticated watch HTTP 401 verified. Real feed and external delivery remain unconfigured.

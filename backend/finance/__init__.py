@@ -1,0 +1,1 @@
+"""Shared economic contract package."""

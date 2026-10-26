@@ -1,0 +1,36 @@
+name: Financial recognition checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/financial_*.py'
+      - 'backend/test_financial_*.py'
+      - 'src/FinanceDocumentDesk.jsx'
+      - '.github/workflows/financial-recognition.yml'
+  pull_request:
+    paths:
+      - 'backend/financial_*.py'
+      - 'backend/test_financial_*.py'
+      - 'src/FinanceDocumentDesk.jsx'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate US/Vietnam report and financial table recognition
+        run: |
+          python -m unittest discover -s backend -p 'test_financial_auto_index.py' -v
+          python -m unittest discover -s backend -p 'test_financial_locale.py' -v
+          python -m unittest discover -s backend -p 'test_financial_report_context.py' -v
+          python -m unittest discover -s backend -p 'test_financial_table_layout.py' -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Verify production frontend build
+        run: npm run build

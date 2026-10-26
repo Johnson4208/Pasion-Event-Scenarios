@@ -1,0 +1,83 @@
+{
+  "family_id": "synthetic-test-only",
+  "definition_version": "1",
+  "question": "Synthetic preview only: variable outcome family",
+  "model_version": "synthetic-test-only-v1",
+  "sampling_policy": "Synthetic independent groups used exclusively by automated tests.",
+  "dataset_sha256": "46525c0b488e7e4ab0a59bdba23ee07bde7dcebd226aa81e9e8daaa0ffb399c1",
+  "training_sample_count": 210,
+  "holdout_sample_count": 210,
+  "training_resolved_through": "2025-04-15T00:00:00+00:00",
+  "holdout_origin_from": "2026-01-01T00:00:00+00:00",
+  "holdout_resolved_through": "2026-08-28T00:00:00+00:00",
+  "reviewed_at": "2026-10-23T00:00:00+00:00",
+  "expires_at": "2026-11-22T00:00:00+00:00",
+  "smoothing": "Jeffreys symmetric half-count per outcome; never a 50% per-scenario starting probability.",
+  "schema_version": 1,
+  "method": "HISTORICAL_REFERENCE_CLASS_V1",
+  "status": "REFERENCE_ESTIMATE_AVAILABLE",
+  "as_of": "2026-10-23T00:00:00+00:00",
+  "context": {
+    "category": "Geopolitics",
+    "factor": "Conflict risk",
+    "focus": "Vietnam",
+    "horizon": "30 days",
+    "basis": "OCCURRENCE"
+  },
+  "scenarios": [
+    {
+      "id": "outcome-0",
+      "title": "Synthetic outcome outcome-0",
+      "resolution_rule": "Fixture rule for outcome-0"
+    },
+    {
+      "id": "outcome-1",
+      "title": "Synthetic outcome outcome-1",
+      "resolution_rule": "Fixture rule for outcome-1"
+    }
+  ],
+  "probabilities": {
+    "outcome-0": 0.6990521327014217,
+    "outcome-1": 0.5995260663507109
+  },
+  "intervals": {
+    "outcome-0": [
+      0.6356044792104101,
+      0.7589257116362018
+    ],
+    "outcome-1": [
+      0.5327447337308147,
+      0.6645199969954492
+    ]
+  },
+  "interval_level": 0.95,
+  "validation": {
+    "status": "PASSED_HOLDOUT_CHECK",
+    "holdout_sample_count": 210,
+    "brier_score": 0.22500056153275985,
+    "log_loss": 0.6419392867454154,
+    "maximum_rate_error": 0.0009478672985782088,
+    "per_outcome_rate_error": {
+      "outcome-0": 0.0009478672985782088,
+      "outcome-1": 0.0004739336492890489
+    },
+    "per_outcome_error_limit": {
+      "outcome-0": 0.08773276953670092,
+      "outcome-1": 0.09372438163383619
+    },
+    "outcome_coverage": true,
+    "policy": "At least 100 training and 100 later holdout groups; at least 5 outcomes per class; rate drift within 1.96 pooled standard errors and 10 percentage points."
+  },
+  "training_counts": {
+    "outcome-0": 147,
+    "outcome-1": 126
+  },
+  "holdout_counts": {
+    "outcome-0": 147,
+    "outcome-1": 126
+  },
+  "mutually_exclusive": false,
+  "exhaustive": false,
+  "news_adjusted": false,
+  "notice": "Historical reference-class baseline with 95% credible intervals for its rates. Validity depends on the sampling and stationarity assumptions; this is not a guarantee about future events."
+}

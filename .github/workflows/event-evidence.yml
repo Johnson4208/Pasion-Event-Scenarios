@@ -1,0 +1,66 @@
+name: Event evidence checks
+on:
+  push:
+    branches: [main, 'codex/event-scenarios-update-20261023']
+    paths:
+      - 'backend/event_*.py'
+      - 'backend/test_event*.py'
+      - 'backend/server.py'
+      - 'src/EventScenarios.jsx'
+      - 'src/EventScenarioComparison.jsx'
+      - 'src/EventSourceStatus.jsx'
+      - 'src/CompanyNews.jsx'
+      - 'src/company-news.scss'
+      - 'src/eventScenarios.js'
+      - 'src/event-scenarios.scss'
+      - 'src/translations*.js'
+      - 'src/HomePage.jsx'
+      - 'src/WorkspaceNavigation.jsx'
+      - 'tests/f10.spec.js'
+      - 'tests/news-collection.spec.js'
+      - 'tests/fixtures/event-*.json'
+      - 'unit/eventScenarios.test.js'
+      - 'playwright.config.js'
+      - '.github/workflows/event-evidence.yml'
+  pull_request:
+    paths:
+      - 'backend/event_*.py'
+      - 'backend/test_event*.py'
+      - 'backend/server.py'
+      - 'src/EventScenarios.jsx'
+      - 'src/EventScenarioComparison.jsx'
+      - 'src/EventSourceStatus.jsx'
+      - 'src/CompanyNews.jsx'
+      - 'src/company-news.scss'
+      - 'src/eventScenarios.js'
+      - 'src/event-scenarios.scss'
+      - 'src/translations*.js'
+      - 'src/HomePage.jsx'
+      - 'src/WorkspaceNavigation.jsx'
+      - 'tests/f10.spec.js'
+      - 'tests/news-collection.spec.js'
+      - 'tests/fixtures/event-*.json'
+      - 'unit/eventScenarios.test.js'
+      - 'playwright.config.js'
+      - '.github/workflows/event-evidence.yml'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run event research and API regressions
+        run: python -m unittest discover -s backend -p 'test_event*.py' -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:unit
+      - name: Install browser for Event UI regression tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify Event research interactions
+        run: npm run test:ui -- tests/f10.spec.js tests/news-collection.spec.js

@@ -1,0 +1,66 @@
+PASION — MỘT BỘ MÃ NGUỒN HOÀN CHỈNH — 24/10/2026
+
+Bản này giữ Event Scenarios mới, so sánh toàn nhóm kết quả, nền tảng dữ liệu
+đối chiếu, Vite 6.4.5 và công cụ khôi phục dữ liệu backend trên máy bạn.
+ZIP nguồn không chứa tài khoản, tài liệu riêng, khóa API hoặc môi trường cài sẵn.
+Có ước tính nghiên cứu tự động từ hai chuỗi FRED đã xác nhận truy cập:
+VIX Hoa Kỳ và lãi suất vay mua nhà Hoa Kỳ. Hiển thị toàn nhóm cuối kỳ,
+khoảng bất định và kết quả kiểm tra lịch sử. Chưa tuyên bố hiệu chuẩn tương lai.
+Chọn câu hỏi được hỗ trợ và bấm Calculate scenario probabilities.
+Vietnam / Conflict risk vẫn cần định nghĩa kết quả và dữ liệu phù hợp;
+không tự đổi sang câu hỏi khác hoặc gán phần trăm từ số bài báo.
+Xem EVENT_SERIES_RESEARCH.md.
+
+TIN TỨC THU THẬP VÀ DỮ LIỆU CŨ
+- Đã sửa nguồn Google News tiếng Việt và nhận diện tin về Hà Nội/TP.HCM.
+- Event Scenarios có bảng số tin tải về/bị lọc và kết quả từng nguồn.
+- Previously collected reporting mở kho Event Agent và Company News đã lưu.
+- Company News hiển thị lỗi kết nối riêng, không coi lỗi như kho có 0 bài.
+- 0 quan sát Outcome Data khác với 0 tin tức. Xem NEWS-COLLECTION.md.
+
+ĐỐI CHIẾU BA PHIÊN BẢN TRONG ZIP LỚN
+ZIP lớn bạn đã gửi chưa đọc được do giới hạn chuyển tệp 32 MiB.
+1. Giải nén bộ mã này. Mở thư mục có package.json và PREPARE-RECOVERY.cmd.
+2. Mở PREPARE-RECOVERY.cmd, chọn ZIP gốc chứa ba phiên bản.
+3. Gửi ZIP mới có tên kết thúc -recovery-source-NGAY-GIO.zip để đối chiếu mã.
+   ZIP mới chỉ để đối chiếu. Giữ ZIP gốc chứa đầy đủ dữ liệu trên máy bạn.
+Chi tiết: RECOVERY-BUNDLE.md. Công cụ không sửa ZIP gốc và không tự gộp ba bản.
+
+KHÔI PHỤC DỮ LIỆU CŨ VÀO MỘT THƯ MỤC DÙNG MÃ MỚI
+1. Dừng cả hai bản PASION và Event Agent bằng Ctrl+C ở các Terminal.
+2. Trong thư mục mã mới, mở RECOVER-BACKEND.cmd.
+3. Chọn đúng một thư mục dự án cũ có package.json, backend và src.
+   Nếu các bản ở trong ZIP, giải nén trước để chọn được thư mục.
+4. Công cụ tạo Pasion-recovered-NGAY-GIO cạnh thư mục mã mới.
+   Chỉ dùng thư mục đó sau khi thông báo thành công. Giữ bản cũ để đối chiếu.
+Chi tiết và lệnh thay thế: BACKEND-RECOVERY.md.
+
+Dữ liệu lấy trọn bộ từ một phiên bản, không tự trộn tài khoản của nhiều bản.
+Mật khẩu và quyền cũ được giữ. Sau khi khởi động lại cần đăng nhập lại.
+Cấu hình SMTP, biến môi trường và JSON mô hình riêng không tự chuyển.
+Thư mục đã khôi phục có dữ liệu riêng tư: KHÔNG gửi lên GitHub hoặc gửi lại.
+Nếu có RECOVERY-INCOMPLETE.txt, không chạy thư mục đó; tạo đầu ra mới và thử lại.
+
+CÀI VÀ CHẠY
+Cần Node.js LTS 22/24 và Python 3.12.
+Trong thư mục bản chính có package.json, mở CMD, chạy từng dòng và dừng nếu lỗi:
+
+npm.cmd ci
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --timeout 120 --retries 10 --disable-pip-version-check -r backend/requirements-documents.txt
+npm.cmd run dev
+
+Nếu py không tìm thấy Python, cài rồi mở lại CMD:
+winget install --exact --id Python.Python.3.12
+Kiểm tra: py -3.12 --version
+
+Không cần Administrator hoặc Activate.ps1. Giữ Terminal mở.
+Trình duyệt: http://127.0.0.1:5173
+Lần sau mở RUN-PASION.cmd hoặc chạy npm.cmd run dev tại cùng thư mục.
+Lệnh dev:full cũ vẫn hoạt động. npm run dev giờ mở cả backend và giao diện.
+Nếu chạy hai Terminal riêng: giao diện dùng npm.cmd run dev:frontend.
+Chỉ chạy một backend trên cổng 8000 tại một thời điểm.
+
+Demo mặc định (nếu tài khoản này chưa đổi): demo@solvai.com / SolvAI2024!
+Tài khoản riêng phụ thuộc backend/accounts.sqlite3 đã khôi phục.
+Không xóa database để sửa lỗi đăng nhập.

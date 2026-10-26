@@ -1,0 +1,11 @@
+# A04 operating profitability
+
+finance/metrics.py defines explicit profitability bases and selected-period return conventions. Operating profit, reviewed EBIT, standard EBITDA, issuer-reported EBITDA, adjusted EBITDA and proxy EBITDA are separate definitions. Accumulated depreciation is a balance stock, never period D&A. Standard EBITDA remains EBIT plus same-period eligible reviewed D&A only. No operating-profit/EBIT or proxy/standard alias is inferred. Reported/adjusted definitions require human semantic review of the issuer's actual presentation.
+
+Net/EBITDA/CFO margins use compatible currency/scope/ownership/accounting/restatement and matched durations. ROA uses net income and opening/closing assets; ROE uses common income and common equity. Missing opening balances withhold the standard result. Return output period now explicitly matches its income numerator, not its point-in-time closing balance. No forced annualization of selected-quarter returns. Debt/EBITDA uses reviewed same-entity as-of debt over FY/TTM standard EBITDA; no quarterly x4 substitute. Existing F03 canonical calculation/source/input lineage is retained.
+
+Basis flags render in the existing metric detail drawer; cards/layout/navigation unchanged. Proxy origin stays PROXY. No probability-of-financial-health or automatic valuation consensus introduced. Eligible D&A is an explicit finance reviewer assertion of expense reducing EBIT in the interval; a cash-flow note or accumulated depreciation cannot supply it automatically.
+
+Fixtures verify EBIT100+eligibleDA20=120 despite separate reported/proxy/balance values, missing opening common equity withholds ROE, mismatched CFO duration withholds margin, quarterly leverage denominator unavailable, and priorFY500+currentH1275-priorH1240=TTM535. Existing semantic/context/period fixtures retained. No real filings or economic eligibility assertions were certified by these tests.
+
+Validation: 24 focused finance tests, 22 profitability tests (including inherited finance cases), all 3 focused F03/F04 browser checks and production build passed. Existing bundle-size warning remains. Full backend suite was not rerun for this localized metric change. Local project restarted with A04 active.
