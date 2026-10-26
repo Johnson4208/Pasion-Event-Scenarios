@@ -536,3 +536,76 @@
  .ev-close-label { background:#1b3549; color:#a1cee9; }
  .ev-probability-scale { background:#263a50; }
 }
+
+
+/* Compact, probability-safe Event Scenarios results */
+.events-refined .events-ranking-heading{align-items:center;padding-bottom:12px}
+.events-refined .events-ranking-heading h2{font-size:22px;margin:3px 0}
+.events-refined .events-ranking-heading p{font-size:12px}
+.events-refined .events-model-flag{padding:7px 10px}
+.events-refined .events-model-diagnostic{
+ display:flex;justify-content:space-between;align-items:center;gap:14px;
+ margin:12px 0;padding:11px 14px;border:1px solid #d8e6f4;border-radius:10px;
+ background:#f7fbff;color:#355875;font-size:12px;line-height:1.45
+}
+.events-refined .events-model-diagnostic>div{display:grid;gap:2px}
+.events-refined .events-model-diagnostic strong{color:#193d5e;font-size:13px}
+.events-refined .events-model-diagnostic span{color:#617b94}
+.events-refined .events-model-diagnostic details{flex:none}
+.events-refined .events-model-diagnostic summary{color:#2468a2;font-weight:700;cursor:pointer}
+.events-refined .events-model-diagnostic code{display:block;margin-top:5px;color:#617b94;font-size:10px}
+.events-refined .events-empty-diagnostic,
+.events-refined .events-split-warning{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ margin:12px 0;padding:10px 13px;border:1px solid #e4e9ef;border-radius:9px;
+ background:#fafbfd;color:#60758a;font-size:12px
+}
+.events-refined .events-empty-diagnostic strong{color:#344f69;font-size:12px}
+.events-refined .events-metric-controls{margin:13px 0 8px}
+.events-refined .events-metric-controls h3{font-size:15px}
+.events-refined .events-metric-controls label{font-size:11px;color:#60758a}
+.events-refined .events-metric-controls select{padding:7px 9px;border-color:#d8e3ef}
+.events-refined .events-ranked-note{
+ margin:0 0 10px;color:#75889b;font-size:11px;line-height:1.4
+}
+.events-refined .events-ranked-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+ border:0;border-radius:0;overflow:visible
+}
+.events-refined .events-ranked-item{
+ display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;
+ border:1px solid #e0e8f0;border-radius:10px;background:#fff;
+ transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease
+}
+.events-refined .events-ranked-item:last-child{border-bottom:1px solid #e0e8f0}
+.events-refined .events-ranked-item:hover{
+ border-color:#bfd2e5;background:#fff;box-shadow:0 5px 16px rgba(28,67,105,.07);transform:translateY(-1px)
+}
+.events-refined .events-rank-number{width:22px;flex:0 0 22px;padding-top:2px;font-size:11px}
+.events-refined .events-rank-main{width:100%;min-width:0}
+.events-refined .events-rank-heading{align-items:flex-start;flex-wrap:nowrap;gap:10px}
+.events-refined .events-rank-heading>div{min-width:0}
+.events-refined .events-rank-heading strong{font-size:13px}
+.events-refined .events-rank-heading p{
+ display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ margin:3px 0 0;color:#75879a;font-size:11px;line-height:1.4
+}
+.events-refined .events-rank-value{flex:none;margin-left:auto;padding-top:1px;font-size:18px;font-weight:780;color:#1d527f}
+.events-refined .events-ranked-track{height:4px;margin-top:8px;background:#edf2f7}
+.events-refined .events-ranked-track i{background:#3579b9}
+.events-refined .events-rank-foot{margin-top:7px;font-size:10px;line-height:1.3}
+.events-refined .events-rank-foot button{flex:none;padding:2px 0;font-size:10px}
+.events-refined .events-distribution-total{
+ justify-content:space-between;margin-top:2px;padding:10px 13px;border:1px solid #d8e7f3;
+ border-radius:9px;background:#f3f8fc;color:#355875
+}
+.events-refined .events-distribution-total strong{font-size:18px}
+@media(max-width:850px){
+ .events-refined .events-ranked-list{grid-template-columns:1fr}
+ .events-refined .events-ranking-heading{align-items:flex-start}
+}
+@media(max-width:600px){
+ .events-refined .events-model-diagnostic,.events-refined .events-empty-diagnostic{align-items:flex-start;flex-direction:column}
+ .events-refined .events-ranked-item{padding:10px}
+ .events-refined .events-rank-value{font-size:16px}
+}
