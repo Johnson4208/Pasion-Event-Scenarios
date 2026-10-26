@@ -207,3 +207,35 @@ export function researchShareAvailable(result) {
     values.filter(v=>v>0).length >= 2 && Math.abs(values.reduce((a,b)=>a+b,0)-100) <= .05 &&
     typeof distribution.total_percent === 'number' && Math.abs(distribution.total_percent-100) <= .05;
 }
+
+/** Subjective three-outcome model. News direction is a proxy, not an observed
+ * future outcome. Symmetric Dirichlet prior (2,2,2); total update capped at 3
+ * pseudo-observations to avoid false certainty from correlated reporting. */
+export function scenarioProbabilities(result) {
+  const counts=[2,2,2], seen=new Set(), signals=[0,0,0];
+  for(const item of result?.items||[]) {
+    if(!item || !['DIRECT_SCOPE','GLOBAL_SCOPE'].includes(item.geographic_relation))continue;
+    const key=item.cluster_id||item.url||item.id;
+    if(!key||seen.has(key))continue;
+    seen.add(key);
+    const d=item.direction,w=item.weight;
+    if(typeof d!=='number'||!Number.isFinite(d)||typeof w!=='number'||!Number.isFinite(w)||w<=0)continue;
+    if(!['DIRECTIONAL','NEUTRAL'].includes(item.direction_status))continue;
+    // Unknown/mixed reports never become observations of stability.
+    const index=item.direction_status==='NEUTRAL'?1:d<0?0:d>0?2:-1;
+    if(index<0)continue;
+    signals[index]+=Math.min(1,w)*(index===1?1:Math.min(1,Math.abs(d)));
+  }
+  const mass=signals.reduce((a,b)=>a+b,0), scale=mass>3?3/mass:1;
+  const posterior=counts.map((n,i)=>n+signals[i]*scale);
+  const total=posterior.reduce((a,b)=>a+b,0);
+  const raw=posterior.map(n=>1000*n/total), units=raw.map(Math.floor);
+  const order=raw.map((v,i)=>({i,f:v-units[i]})).sort((a,b)=>b.f-a.f||a.i-b.i);
+  const remainder=1000-units.reduce((a,b)=>a+b,0);
+  for(let i=0;i<remainder;i++)units[order[i].i]++;
+  return {priorOnly:mass===0,version:'subjective-direction-v1',rows:[
+    {id:'worse',title:'Deterioration',definition:'Net conditions worsen by the end of the selected period.'},
+    {id:'stable',title:'Unchanged',definition:'No net change by the end of the selected period.'},
+    {id:'better',title:'Improvement',definition:'Net conditions improve by the end of the selected period.'}
+  ].map((r,i)=>({...r,percent:units[i]/10}))};
+}
