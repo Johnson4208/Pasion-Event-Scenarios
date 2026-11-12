@@ -35,3 +35,6 @@ design-qa.md
 .workspace-keys.mjs
 .workspace-localize.mjs
 desktop.ini
+
+
+backend/private-financial-sources/

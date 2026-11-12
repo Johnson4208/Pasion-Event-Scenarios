@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import Dialog from './Dialog';
 import {usePreferences} from './Preferences';
 import './investment-research.scss';
+import FinancialSources from './FinancialSources';
 import {factValue} from './FinancialFacts';
 
 const valuationModels=[
@@ -52,19 +53,26 @@ function ValueModelCard({model,onDetails,t}){
  </article>;
 }
 
-export default function InvestmentResearch({storageKey='pasion',company}){
+export default function InvestmentResearch(props){return <InvestmentResearchBody key={props.company?.ticker||'FPT'} {...props}/>;}
+
+function InvestmentResearchBody({storageKey='pasion',company}){
  const ticker=company?.ticker||'FPT';
  const {t}=usePreferences();
+ const country=String(company?.country||'').toLowerCase();
+ const [market,setMarket]=useState(country.includes('vietnam')||country.includes('việt')||ticker==='FPT'?'VN':['united states','usa','us'].includes(country)||['AAPL','MSFT','NVDA','AMZN','GOOGL','JPM','V','XOM','JNJ','TSLA'].includes(ticker)?'US':'reviewed');
+ const [refresh,setRefresh]=useState(0);
  const [facts,setFacts]=useState(null),[valuation,setValuation]=useState(null),[status,setStatus]=useState('Loading reviewed calculations');
  const [sec,setSec]=useState(null),[secStatus,setSecStatus]=useState(''),[secLoading,setSecLoading]=useState(false);
  useEffect(()=>{setSec(null);setSecStatus('');setFacts(null);setValuation(null);},[ticker]);
  useEffect(()=>{
-  let active=true;const controller=new AbortController();
+  setSec(null);setSecStatus('');
+  if(market!=='US'){setSecLoading(false);return;}
+  let active=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
   setSecLoading(true);
-  fetch('/api/research/sec/'+encodeURIComponent(ticker),{signal:controller.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.reason_code||'SEC data unavailable');return d;}).then(d=>{if(active){setSec(d);setSecStatus('');}}).catch(e=>{if(active)setSecStatus(e.message);}).finally(()=>{if(active)setSecLoading(false);});
-  return()=>{active=false;controller.abort();};
- },[ticker]);
- const canUseSec=(!facts||facts.status==='UNAVAILABLE')&&sec?.financials?.status==='READY';
+  fetch('/api/research/sec/'+encodeURIComponent(ticker)+(refresh?'?refresh=1':''),{signal:controller.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.reason_code||'SEC data unavailable');if(d.version!==1||d.ticker!==ticker.toUpperCase())throw Error('SEC response mismatch');return d;}).then(d=>{if(active){setSec(d);setSecStatus(d.refresh_error||'');}}).catch(e=>{if(active)setSecStatus(e.name==='AbortError'?'SEC request timed out':e.message);}).finally(()=>{clearTimeout(timer);if(active)setSecLoading(false);});
+  return()=>{active=false;clearTimeout(timer);controller.abort();};
+ },[ticker,market,refresh]);
+ const canUseSec=market==='US'&&(!facts||facts.status==='UNAVAILABLE')&&sec?.cache_status!=='STALE'&&sec?.financials?.status==='READY';
  const displayedFacts=canUseSec?sec.financials:facts;
  const sourceLabel=canUseSec?sec.source_status:'ADMIN_REVIEWED_DATA';
  useEffect(()=>{
@@ -84,7 +92,7 @@ export default function InvestmentResearch({storageKey='pasion',company}){
   return {...model,value:valid?Number(row.value).toLocaleString():'Unavailable',numeric:valid?Number(row.value):null,currency:row?.currency?row.currency+'/share':'',badge:null,tone:gap&&Number(gap.value)<0?'negative':'neutral',change:gap?`${(Number(gap.value)*100).toFixed(1)}%`:(row?.status||'WITHHELD'),drivers:[['Status',row?.status||'WITHHELD'],['Reason',(row?.reason_codes||['REVIEWED_BASE_AND_ASSUMPTIONS_REQUIRED']).join(', ')],['Sources',(row?.source_ids||[]).join(', ')||'Unavailable'],['Calculation version',valuation?.calculation_version||'Unavailable']]};
  });
  const financialValues=['revenue','net_income','net_margin','ebitda_margin','roe','roa','debt_equity','current_ratio',null];
- const reviewedFinancialRows=financialRows.map((row,i)=>[row[0],financialValues[i]?metric(financialValues[i]):'Unavailable','Unavailable','Not comparable','neutral']);
+ const reviewedFinancialRows=financialRows.map((row,i)=>[canUseSec?row[0].replace('(TTM)','(FY)'):row[0],financialValues[i]?metric(financialValues[i]):'Unavailable','Unavailable','Not comparable','neutral']);
  const reviewedSummary=summaryItems.map(([title],i)=>[title,[`Net margin: ${metric('net_margin')}`,displayedFacts?.quality?.diagnostics?.find(d=>d.definition_id==='revenue_growth')?.reason_codes?.join(', ')||'Comparable growth evidence unavailable','Eligible method results are shown individually','Reviewed dividend sustainability unavailable',`Debt / equity: ${metric('debt_equity')}`][i],'Review required','neutral']);
  const [activeSection,setActiveSection]=useState('Valuation');
  const [detail,setDetail]=useState(null);
@@ -111,6 +119,8 @@ export default function InvestmentResearch({storageKey='pasion',company}){
    <div className="ir-disclosure"><span className="ir-disclosure-dot"/>{t(status)}{canUseSec&&<span> · FY {sec.period_end} · {sourceLabel} · NOT VERIFIED FOR VALUATION</span>}</div>
   </section>
 
+  <FinancialSources market={market} onMarket={setMarket} sec={sec} loading={secLoading} error={secStatus} onRefresh={()=>setRefresh(v=>v+1)}/>
+
   <section className="ir-top-grid" id="ir-valuation">
    <article className="ir-card ir-valuation-summary"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">◈</span><div><h2>{t('Valuation Summary')}</h2><p>{t('Each eligible method retains its own assumptions and evidence.')}</p></div></header>
     <div className="ir-valuation-highlight"><span>{t('Reviewed valuation')}</span><div className="ir-fair-value"><strong>{t('Method-specific')}</strong><small>{valuation?.status||'WITHHELD'}</small><b>{t('No consensus')}</b></div><p>{t('Verified quote')} <strong>{Number.isFinite(currentPrice)?`${currentPrice.toLocaleString()} ${valuation.quote_gap.currency}`:'Unavailable'}</strong></p><small className="ir-range-caption">{t('No average of correlated methods')}</small></div>
@@ -125,7 +135,7 @@ export default function InvestmentResearch({storageKey='pasion',company}){
   </section>
 
   <section className="ir-bottom-grid">
-   <article className="ir-card ir-financial-card" id="ir-financials"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">▤</span><div><h2>{t('Key Financial Indicators')}</h2><p>{t('Reviewed TTM metrics; peer comparison requires compatible sources')}</p></div></header>
+   <article className="ir-card ir-financial-card" id="ir-financials"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">▤</span><div><h2>{t('Key Financial Indicators')}</h2><p>{canUseSec?'FY '+sec.period_end+' · SEC':t('Reviewed TTM metrics; peer comparison requires compatible sources')}</p></div></header>
     <div className="ir-table-scroll"><table className="ir-financial-table"><thead><tr><th>{t('Metric')}</th><th>{t('Value')}</th><th>{t('Industry Avg.')}</th><th>{t('vs. Industry')}</th></tr></thead><tbody>{reviewedFinancialRows.map(([metric,value,average,delta,tone])=><tr key={metric}><th scope="row">{t(metric)}</th><td>{value}</td><td>{average}</td><td className={tone}>{delta}</td></tr>)}</tbody></table></div>
    </article>
    <article className="ir-card ir-health-card" id="ir-health"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">◉</span><div><h2>{t('Financial Health Assessment')}</h2><p>{t('Reason-coded diagnostics; no invented health score')}</p></div><span className="ir-health-state">● {t('Unavailable')} <b>→</b></span></header>
@@ -149,3 +159,4 @@ export default function InvestmentResearch({storageKey='pasion',company}){
   {detail&&<Dialog title={t(detail.full||detail.name)} onClose={()=>setDetail(null)} className="ir-detail-dialog"><p className="ir-detail-description">{t(status)}</p>{detail.drivers&&<dl>{detail.drivers.map(([label,value])=><div key={label}><dt>{t(label)}</dt><dd>{value}</dd></div>)}</dl>}<p>{t('Model values are sensitive to growth, discount rates, financial statement quality, and market conditions. Review source documents and update the assumptions before using this analysis.')}</p><button type="button" className="ir-dialog-close" onClick={()=>setDetail(null)}>{t('Close')}</button></Dialog>}
  </div>;
 }
+

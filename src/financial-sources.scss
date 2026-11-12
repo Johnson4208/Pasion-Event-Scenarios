@@ -1,0 +1,11 @@
+.financial-sources { padding:20px; margin-block:18px; color:var(--pref-text,#122e50); }
+.financial-sources header,.financial-source-status,.financial-sources form,.financial-sources nav {display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+.financial-sources h2 {font-size:20px;margin:0 0 6px;}
+.financial-sources p {line-height:1.6;overflow-wrap:anywhere;}
+.financial-sources label {display:grid;gap:6px;font-size:14px;}
+.financial-sources select,.financial-sources input,.financial-sources button {font:inherit;min-height:42px;border:1px solid var(--pref-border,#d9e5f2);border-radius:8px;padding:8px 12px;background:var(--pref-surface,#fff);color:inherit;max-width:100%;}
+.financial-sources button {cursor:pointer;}.financial-sources button:disabled{opacity:.6;cursor:wait;}
+.financial-sources nav {justify-content:flex-start;margin-block:16px;}.financial-sources a{color:var(--pref-accent,#2468f2);}
+.financial-sources details {margin-block:12px;}.financial-sources summary{cursor:pointer;}.financial-sources form{justify-content:flex-start;margin-top:12px;align-items:end;}
+.financial-sources small{display:block;line-height:1.6;margin-top:12px;}
+@media(max-width:650px){.financial-sources header>*,.financial-sources label{width:100%;}.financial-sources{padding:16px;}}

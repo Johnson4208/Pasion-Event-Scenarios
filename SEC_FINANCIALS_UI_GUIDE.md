@@ -4,11 +4,14 @@
 
 The Investment Research page automatically requests `GET /api/research/sec/{TICKER}` for the selected US-listed issuer. On an issuer without accepted financial observations, its existing **Key Financial Indicators**, Summary and provenance panel can display a machine-read FY SEC companyfacts result. This does not create a separate calculations page and never writes to the application's accepted `finance.sqlite3`.
 
-The server uses SEC `company_tickers.json` and `api/xbrl/companyfacts/CIK....json`; values are mapped only when there is an explicit 10-K accession, fiscal year end/start, FY and US-GAAP tag. Quarterly 10-Q boundaries are checked, and no value is inferred from an absent or conflicting tag. Results are cached for six hours **in memory** and discarded when the Python server restarts. The initial Apple fixture is available when no SEC User-Agent has been set, clearly labeled as manually transcribed and *not* a live scan.
+The server uses SEC `company_tickers.json` and `api/xbrl/companyfacts/CIK....json`; values are mapped only when there is an explicit 10-K accession, fiscal year end/start, FY and US-GAAP tag. Quarterly 10-Q boundaries are checked, and no value is inferred from an absent or conflicting tag. Results are cached for six hours in memory and locally under `backend/private-financial-sources/`, including across server restarts. Stale cache copies are labeled and excluded from indicators. The initial Apple fixture is available when no SEC User-Agent has been set, clearly labeled as manually transcribed and *not* a live scan.
 
 The original uploaded-PDF workflow remains: admin upload -> background PDF/DOCX extraction -> stage observations with page/table/period/ownership -> human approval -> accepted facts -> public research cards. The existing system does **not** yet autonomously turn arbitrary, multilingual uploaded PDF filings into accepted accounting facts. For non-SEC issuers (including Vietnamese tickers), source adapters and reviewer mappings are still required.
 
 ## Configure SEC access locally
+
+Administrators can now configure their contact email in **Investment Research → Financial data sources → Configure SEC contact**, without restarting the backend. See [FINANCIAL_SOURCES.md](FINANCIAL_SOURCES.md) for source selection, Vietnam report review and cache behavior. Environment configuration below still takes priority.
+
 
 Before starting the backend, set an informative User-Agent identifying your application and contact. Use your **own** contact email. Windows PowerShell:
 
@@ -46,3 +49,4 @@ No real account credentials, API tokens, or portfolio state are sent to SEC. Pub
 - Build region-specific adapters for non-US XBRL/iXBRL and PDF reports.
 - Register eligible capital-market assumptions and sector-specific valuation policy before enabling any model's estimate.
 - Add a side-by-side provenance drawer that identifies each individual input and its status.
+

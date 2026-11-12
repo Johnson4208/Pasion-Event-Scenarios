@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.request import Request,urlopen
 
 import finance_core
+import financial_sources
 from examples.apple_sec_2025_case import make as apple_reference_make,URL as APPLE_REFERENCE_URL
 
 SEC_HOST="https://data.sec.gov"
@@ -41,6 +42,10 @@ STOCK=finance_core.STOCK
 CACHE={}
 LOCK=threading.RLock()
 TTL=60*60*6
+REQUEST_LOCK=threading.Lock()
+LAST_REQUEST=0.0
+RESEARCH_LOCK=threading.Lock()
+ATTEMPTS={}
 
 class FilingUnavailable(Exception):
  def __init__(self,reason):
@@ -48,8 +53,13 @@ class FilingUnavailable(Exception):
   super().__init__(reason)
 
 def fetch_json(url,agent):
- if not agent or '@' not in agent or len(agent)>180:
+ if not financial_sources.valid_agent(agent):
   raise FilingUnavailable("SEC_USER_AGENT_NOT_CONFIGURED")
+ global LAST_REQUEST
+ with REQUEST_LOCK:
+  delay=.25-(time.monotonic()-LAST_REQUEST)
+  if delay>0:time.sleep(delay)
+  LAST_REQUEST=time.monotonic()
  request=Request(url,headers={"User-Agent":agent,"Accept":"application/json","Accept-Encoding":"identity"})
  try:
   with urlopen(request,timeout=12) as response:
@@ -214,15 +224,45 @@ def apple_reference():
    "filing_url":APPLE_REFERENCE_URL,"filing_accession":"0000320193-25-000079",
    "source_details":sources,"financials":result,"review_required_for_valuation":True}
 
-def research(ticker,refresh=False):
+def research(ticker,refresh=False,root=None):
+ root=Path(root) if root is not None else Path(__file__).resolve().parent
  ticker=ticker.upper()
- agent=os.environ.get("PASION_SEC_USER_AGENT","").strip()
- if not agent:
+ if not re.fullmatch(r"[A-Z0-9.-]{1,16}",ticker):raise FilingUnavailable("INVALID_TICKER")
+ agent,_=financial_sources.settings(root)
+ if not financial_sources.valid_agent(agent):
   if ticker=="AAPL":return apple_reference()
   raise FilingUnavailable("SEC_USER_AGENT_NOT_CONFIGURED")
- with LOCK:
-  previous=CACHE.get(ticker)
-  if not refresh and previous and time.time()-previous[0]<TTL:return previous[1]
- result=build(ticker,agent)
- with LOCK:CACHE[ticker]=(time.time(),result)
- return result
+ cache_path=financial_sources.directory(root)/("sec-"+ticker+".json")
+ key=(str(root.resolve()),ticker)
+ # One preparation at a time also prevents duplicate concurrent refreshes.
+ with RESEARCH_LOCK:
+  previous=CACHE.get(key)
+  if previous is None:
+   try:
+    entry=json.loads(cache_path.read_text(encoding='utf-8'))
+    result=entry['result'];stamp=entry['timestamp']
+    if (entry.get('cache_version')==1 and isinstance(stamp,(int,float)) and
+        0<=time.time()-stamp and result.get('version')==1 and result.get('ticker')==ticker and
+        result.get('source_status')=='SEC_MACHINE_XBRL_NOT_HUMAN_REVIEWED'):
+     previous=(stamp,result)
+   except (OSError,ValueError,KeyError,TypeError,AttributeError):pass
+  def cached(error=None):
+   age=time.time()-previous[0]
+   return {**previous[1], 'cache_status':'FRESH' if age<TTL else 'STALE',
+           'refresh_error':error}
+  if not refresh and previous and time.time()-previous[0]<TTL:return cached()
+  if time.time()-ATTEMPTS.get(key,0)<60:
+   if previous:return cached('SEC_REFRESH_COOLDOWN')
+   raise FilingUnavailable('SEC_REFRESH_COOLDOWN')
+  ATTEMPTS[key]=time.time()
+  try:result=build(ticker,agent)
+  except FilingUnavailable as exc:
+   if previous:return cached(exc.reason)
+   raise
+  stamp=time.time()
+  result={**result,'retrieved_at':datetime.fromtimestamp(stamp,timezone.utc).isoformat()}
+  CACHE[key]=(stamp,result)
+  try:financial_sources.atomic_json(cache_path,{'cache_version':1,'timestamp':stamp,'result':result})
+  except OSError:
+   return {**result,'cache_status':'LIVE','cache_persisted':False}
+  return {**result,'cache_status':'LIVE','cache_persisted':True}

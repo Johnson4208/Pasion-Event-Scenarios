@@ -23,6 +23,7 @@ import market_summary
 import finance_core
 import public_filing_demo
 import sec_filings
+import financial_sources
 import valuation
 import stock_models
 from market import technical
@@ -874,12 +875,16 @@ class Handler(BaseHTTPRequestHandler):
             except (sqlite3.Error,OSError):self.respond(503,{'message':'Health archive unavailable.'})
             return
         if address in ('/api/admin/distribution','/api/admin/distribution/monitor'):self.distribution_api();return
+        if address == '/api/research/financial-sources':
+            session = self.current_session()
+            self.respond(200, financial_sources.catalog(ROOT, is_admin_email(session['email'])))
+            return
         sec_route=re.fullmatch(r'/api/research/sec/([A-Za-z0-9.-]{1,16})',address)
         if sec_route:
             if not self.current_session():
                 self.respond(401,{'message':'Please sign in again.'});return
             try:
-                self.respond(200,sec_filings.research(sec_route[1],parse_qs(urlparse(self.path).query).get('refresh',['0'])[0]=='1'))
+                self.respond(200,sec_filings.research(sec_route[1],parse_qs(urlparse(self.path).query).get('refresh',['0'])[0]=='1',root=ROOT))
             except sec_filings.FilingUnavailable as exc:
                 self.respond(422,{'status':'UNAVAILABLE','reason_code':exc.reason})
             except (ValueError,KeyError,TypeError,ArithmeticError,OSError,sqlite3.Error):
@@ -1008,6 +1013,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if not self.policy_guard():
+            return
+        if urlparse(self.path).path == '/api/admin/financial-sources':
+            try:
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 1024:
+                    raise ValueError('Invalid configuration size.')
+                data = json.loads(self.read_document_body(size))
+                if not isinstance(data, dict):
+                    raise ValueError('Invalid configuration.')
+                financial_sources.configure(ROOT, data.get('email'))
+                self.respond(200, financial_sources.catalog(ROOT, True))
+            except (ValueError, TypeError, UnicodeError) as exc:
+                self.respond(400, {'message': str(exc)})
+            except DocumentError as exc:
+                self.respond(400, {'message': str(exc)})
+            except OSError:
+                self.respond(503, {'message': 'Cannot save source configuration.'})
             return
         if urlparse(self.path).path == '/api/research/events/forecast':
             self.event_forecast_api();return
@@ -1144,3 +1166,4 @@ if __name__ == '__main__':
     document_service.resume_processing(ROOT)
     print('PASION API running at http://127.0.0.1:8000', flush=True)
     http.serve_forever()
+

@@ -1,0 +1,43 @@
+name: Financial source integration
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'backend/financial_sources.py'
+      - 'backend/sec_filings.py'
+      - 'backend/server.py'
+      - 'src/FinancialSources.jsx'
+      - 'src/financial-sources.scss'
+      - 'src/InvestmentResearch.jsx'
+      - 'tests/financial-sources.spec.js'
+      - 'backend/test_financial_sources*.py'
+      - '.github/workflows/financial-sources.yml'
+  pull_request:
+    paths:
+      - 'backend/financial_sources.py'
+      - 'backend/sec_filings.py'
+      - 'src/FinancialSources.jsx'
+      - 'src/InvestmentResearch.jsx'
+      - 'tests/financial-sources.spec.js'
+      - '.github/workflows/financial-sources.yml'
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: python -m unittest discover -s backend -p 'test_financ*.py'
+      - run: python -m unittest discover -s backend -p 'test_sec_filings.py'
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui -- tests/financial-sources.spec.js
