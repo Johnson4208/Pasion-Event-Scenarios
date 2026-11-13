@@ -3,32 +3,15 @@ import Dialog from './Dialog';
 import {usePreferences} from './Preferences';
 import './investment-research.scss';
 import FinancialSources from './FinancialSources';
-import {factValue} from './FinancialFacts';
+import ResearchCompanySearch,{companyMarket} from './ResearchCompanySearch';
+import {chooseMetric,formatFinancial,missingReason,usable} from './automaticFinancials';
 
 const valuationModels=[
- {name:'DCF',full:'Discounted Cash Flow',value:'78,400',change:'+26.2%',tone:'positive',badge:'Highest value',drivers:[['WACC','9.5%'],['Terminal growth','2.5%'],['Forecast period','5 years']]},
- {name:'P/E',full:'Price to Earnings',value:'71,200',change:'+14.7%',tone:'positive',drivers:[['TTM P/E','12.27×'],['Industry P/E','16.8×'],['EPS (TTM)','5,062 VND']]},
- {name:'DDM',full:'Dividend Discount',value:'65,400',change:'+5.3%',tone:'positive',drivers:[['Dividend yield','2.9%'],['Growth rate','6.0%'],['Cost of equity','9.5%']]},
- {name:'Gordon',full:'Gordon Growth Model',value:'69,800',change:'+12.4%',tone:'positive',drivers:[['Dividend (D1)','1,800 VND'],['Growth rate','6.0%'],['Cost of equity','9.5%']]},
- {name:'Asset-based',full:'Asset-based Valuation',value:'58,700',change:'−5.5%',tone:'negative',drivers:[['Book value/share','23,940 VND'],['Adjustments','+3.2%'],['P/B','2.65×']]},
-];
-const financialRows=[
- ['Revenue (TTM)','62.1T VND','48.7T VND','+27.4%','positive'],
- ['Net Profit (TTM)','9.8T VND','6.2T VND','+58.1%','positive'],
- ['Net Margin','15.8%','12.7%','+3.1pp','positive'],
- ['EBITDA Margin','21.4%','17.3%','+4.1pp','positive'],
- ['ROE','18.6%','14.2%','+4.4pp','positive'],
- ['ROA','12.7%','9.8%','+2.9pp','positive'],
- ['Debt / Equity','0.42','0.68','−38.2%','positive'],
- ['Current Ratio','1.56','1.28','+21.9%','positive'],
- ['Free Cash Flow (TTM)','7.31T VND','4.91T VND','+49.0%','positive'],
-];
-const summaryItems=[
- ['Profitability','Net margin 15.8% (vs. industry 12.7%)','Good','positive'],
- ['Growth','Revenue CAGR (3Y) 13.2%','Good','positive'],
- ['Valuation','Forward P/E 12.27× (vs. industry 16.8×)','Attractive','positive'],
- ['Dividends','Dividend yield 2.9%','Stable','neutral'],
- ['Financial Health','Debt / Equity 0.42 (vs. industry 0.68)','Healthy','positive'],
+ {name:'DCF',full:'Discounted Cash Flow'},
+ {name:'P/E',full:'Price to Earnings'},
+ {name:'DDM',full:'Dividend Discount'},
+ {name:'Gordon',full:'Gordon Growth Model'},
+ {name:'Asset-based',full:'Asset-based Valuation'},
 ];
 const navSections=[
  ['Overview','ir-summary'],['Valuation','ir-valuation'],['Financials','ir-financials'],
@@ -53,28 +36,27 @@ function ValueModelCard({model,onDetails,t}){
  </article>;
 }
 
-export default function InvestmentResearch(props){return <InvestmentResearchBody key={props.company?.ticker||'FPT'} {...props}/>;}
+export default function InvestmentResearch(props){return <><ResearchCompanySearch key={companyMarket(props.company)} company={props.company} query={props.query} onQuery={props.onQuery} onChoose={props.onChoose}/><InvestmentResearchBody key={companyMarket(props.company)+':'+(props.company?.ticker||'FPT')} {...props}/></>;}
 
 function InvestmentResearchBody({storageKey='pasion',company}){
  const ticker=company?.ticker||'FPT';
- const {t}=usePreferences();
- const country=String(company?.country||'').toLowerCase();
- const [market,setMarket]=useState(country.includes('vietnam')||country.includes('việt')||ticker==='FPT'?'VN':['united states','usa','us'].includes(country)||['AAPL','MSFT','NVDA','AMZN','GOOGL','JPM','V','XOM','JNJ','TSLA'].includes(ticker)?'US':'reviewed');
+ const {t,language}=usePreferences();const vi=language==='vi';const text=(en,vn)=>vi?vn:en;
+ const market=companyMarket(company);
  const [refresh,setRefresh]=useState(0);
  const [facts,setFacts]=useState(null),[valuation,setValuation]=useState(null),[status,setStatus]=useState('Loading reviewed calculations');
- const [sec,setSec]=useState(null),[secStatus,setSecStatus]=useState(''),[secLoading,setSecLoading]=useState(false);
- useEffect(()=>{setSec(null);setSecStatus('');setFacts(null);setValuation(null);},[ticker]);
+ const [snapshot,setSnapshot]=useState(null),[sourceError,setSourceError]=useState(''),[loading,setLoading]=useState(true);
  useEffect(()=>{
-  setSec(null);setSecStatus('');
-  if(market!=='US'){setSecLoading(false);return;}
-  let active=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
-  setSecLoading(true);
-  fetch('/api/research/sec/'+encodeURIComponent(ticker)+(refresh?'?refresh=1':''),{signal:controller.signal}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.reason_code||'SEC data unavailable');if(d.version!==1||d.ticker!==ticker.toUpperCase())throw Error('SEC response mismatch');return d;}).then(d=>{if(active){setSec(d);setSecStatus(d.refresh_error||'');}}).catch(e=>{if(active)setSecStatus(e.name==='AbortError'?'SEC request timed out':e.message);}).finally(()=>{clearTimeout(timer);if(active)setSecLoading(false);});
+  let active=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),60000);
+  setLoading(true);setSourceError('');setSnapshot(null);
+  fetch('/api/research/financials/'+encodeURIComponent(ticker)+'?market='+market+(refresh?'&refresh=1':''),{signal:controller.signal})
+   .then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.reason_code||'PUBLIC_FINANCIALS_UNAVAILABLE');if(d.version!==1||d.ticker!==ticker.toUpperCase()||d.market!==market)throw Error('PROVIDER_ENTITY_MISMATCH');return d;})
+   .then(d=>{if(active){setSnapshot(d);setSourceError(d.refresh_error||'');}})
+   .catch(e=>{if(active)setSourceError(e.name==='AbortError'?'Request timed out':e.message);})
+   .finally(()=>{clearTimeout(timer);if(active)setLoading(false);});
   return()=>{active=false;clearTimeout(timer);controller.abort();};
  },[ticker,market,refresh]);
- const canUseSec=market==='US'&&(!facts||facts.status==='UNAVAILABLE')&&sec?.cache_status!=='STALE'&&sec?.financials?.status==='READY';
- const displayedFacts=canUseSec?sec.financials:facts;
- const sourceLabel=canUseSec?sec.source_status:'ADMIN_REVIEWED_DATA';
+ const selectedMetric=id=>chooseMetric(id,facts,snapshot);
+ const metric=id=>formatFinancial(selectedMetric(id),language);
  useEffect(()=>{
   let active=true;const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
   const read=async(response)=>{if(!response.ok)throw Error('Reviewed calculation service unavailable');const data=await response.json();if(data.version!==1)throw Error('Unsupported calculation contract');return data;};
@@ -83,17 +65,24 @@ function InvestmentResearchBody({storageKey='pasion',company}){
    setStatus(results.every(r=>r.status==='fulfilled')?'Reviewed calculations; unavailable inputs remain withheld':'Reviewed calculation coverage incomplete; missing inputs are unavailable');
   }).finally(()=>clearTimeout(timeout));return()=>{active=false;clearTimeout(timeout);controller.abort();};
  },[ticker]);
- const metric=id=>factValue(displayedFacts?.metrics?.[id]);
  const currentPrice=valuation?.quote_gap?.status==='READY'?Number(valuation.quote_gap.price):null;
+ const publicQuote=snapshot?.cache_status!=='STALE'&&snapshot?.quote?.status==='READY'?snapshot.quote:null;
+ const displayPrice=currentPrice??(publicQuote?Number(publicQuote.price):null);
  const models=valuationModels.map(model=>{
   const row=valuation?.methods?.find(r=>r.method===({DCF:'FCFF','P/E':'P/E',DDM:'DDM',Gordon:'Gordon','Asset-based':'Asset-based'}[model.name]));
   const valid=row?.status==='READY'&&row.value!==null&&Number.isFinite(Number(row.value));
   const gap=valuation?.quote_gap?.status==='READY'?valuation.quote_gap.methods?.find(g=>g.method===row?.method&&g.status==='READY'):null;
-  return {...model,value:valid?Number(row.value).toLocaleString():'Unavailable',numeric:valid?Number(row.value):null,currency:row?.currency?row.currency+'/share':'',badge:null,tone:gap&&Number(gap.value)<0?'negative':'neutral',change:gap?`${(Number(gap.value)*100).toFixed(1)}%`:(row?.status||'WITHHELD'),drivers:[['Status',row?.status||'WITHHELD'],['Reason',(row?.reason_codes||['REVIEWED_BASE_AND_ASSUMPTIONS_REQUIRED']).join(', ')],['Sources',(row?.source_ids||[]).join(', ')||'Unavailable'],['Calculation version',valuation?.calculation_version||'Unavailable']]};
+  return {...model,value:valid?Number(row.value).toLocaleString():'Unavailable',numeric:valid?Number(row.value):null,currency:row?.currency?row.currency+'/share':'',badge:null,tone:gap&&Number(gap.value)<0?'negative':'neutral',change:gap?`${(Number(gap.value)*100).toFixed(1)}%`:(row?.status||'WITHHELD'),drivers:[['Status',row?.status||'WITHHELD'],['Reason',valid?text('Calculated from reviewed inputs','Tính từ đầu vào đã duyệt'):text('Add reviewed model assumptions and compatible financial inputs.','Cần giả định mô hình và đầu vào tài chính phù hợp đã duyệt.')],['Sources',(row?.source_ids||[]).join(', ')||'Unavailable'],['Calculation version',valuation?.calculation_version||'Unavailable']]};
  });
- const financialValues=['revenue','net_income','net_margin','ebitda_margin','roe','roa','debt_equity','current_ratio',null];
- const reviewedFinancialRows=financialRows.map((row,i)=>[canUseSec?row[0].replace('(TTM)','(FY)'):row[0],financialValues[i]?metric(financialValues[i]):'Unavailable','Unavailable','Not comparable','neutral']);
- const reviewedSummary=summaryItems.map(([title],i)=>[title,[`Net margin: ${metric('net_margin')}`,displayedFacts?.quality?.diagnostics?.find(d=>d.definition_id==='revenue_growth')?.reason_codes?.join(', ')||'Comparable growth evidence unavailable','Eligible method results are shown individually','Reviewed dividend sustainability unavailable',`Debt / equity: ${metric('debt_equity')}`][i],'Review required','neutral']);
+ const financialDefinitions=[['Revenue','revenue'],['Net Profit','net_income'],['Net Margin','net_margin'],['EBITDA Margin','ebitda_margin'],['ROE','roe'],['ROA','roa'],['Debt / Equity','debt_equity'],['Current Ratio','current_ratio'],['Free Cash Flow','free_cash_flow']];
+ const readyCount=financialDefinitions.filter(([,id])=>usable(selectedMetric(id))).length;
+ const reviewedSummary=[
+  ['Profitability',`${text('Net margin','Biên lợi nhuận')}: ${metric('net_margin')}`,usable(selectedMetric('net_margin'))],
+  ['Growth',`${text('Revenue growth (FY)','Tăng trưởng doanh thu năm')}: ${metric('revenue_growth')}`,usable(selectedMetric('revenue_growth'))],
+  ['Valuation',text('Add model assumptions to calculate fair value.','Cần thêm giả định mô hình để tính giá trị hợp lý.'),false],
+  ['Dividends',text('Dividend sustainability needs cash-flow and payout evidence.','Cần số liệu dòng tiền và chi trả để đánh giá cổ tức.'),false],
+  ['Financial Health',`${text('Debt / equity','Nợ vay / Vốn chủ')}: ${metric('debt_equity')} · ${text('Current ratio','Thanh toán hiện hành')}: ${metric('current_ratio')}`,usable(selectedMetric('debt_equity'))],
+ ];
  const [activeSection,setActiveSection]=useState('Valuation');
  const [detail,setDetail]=useState(null);
  const savedKey=storageKey+'-research-saved-'+ticker;
@@ -105,21 +94,37 @@ function InvestmentResearchBody({storageKey='pasion',company}){
   <header className="ir-page-heading"><div><span className="eyebrow">{t('COMPANY VALUATION')}</span><h1>{t('Investment Research')}</h1><p>{t('Assess company value, financial strength, and the factors behind an investment decision.')}</p></div></header>
   <section className="ir-company-card" id="ir-summary" aria-label={t(ticker+' company snapshot')}>
    <div className="ir-company-overview">
-    <div className="ir-company-identity"><span className="ir-company-logo" aria-hidden="true">{ticker.slice(0,3)}</span><div><h1>{company?.name||facts?.company?.name||ticker}</h1><div className="ir-company-tags"><b>{ticker}</b><b>{company?.country||'—'}</b><span aria-hidden="true">☆</span></div><p>{t(company?.sector||'Industry unavailable')} <i/> {t(company?.country||'Country unavailable')}</p></div></div>
-    <div className="ir-quote"><strong>{Number.isFinite(currentPrice)?currentPrice.toLocaleString():'Unavailable'} <small>{valuation?.quote_gap?.status==='READY'?valuation.quote_gap.currency:''}</small></strong><span>{valuation?.quote_gap?.status||'UNAVAILABLE'}</span><em>{t('Verified quote required')}</em></div>
+    <div className="ir-company-identity"><span className="ir-company-logo" aria-hidden="true">{ticker.slice(0,3)}</span><div><h1>{snapshot?.issuer||company?.name||facts?.company?.name||ticker}</h1><div className="ir-company-tags"><b>{ticker}</b><b>{company?.country||'—'}</b><span aria-hidden="true">☆</span></div><p>{t(company?.sector||'Industry unavailable')} <i/> {t(company?.country||'Country unavailable')}</p></div></div>
+    <div className="ir-quote"><strong>{Number.isFinite(displayPrice)?displayPrice.toLocaleString():text('Unavailable','Chưa có giá')} <small>{valuation?.quote_gap?.status==='READY'?valuation.quote_gap.currency:publicQuote?.currency||''}</small></strong><span>{currentPrice!==null?text('Reviewed quote','Giá đã duyệt'):publicQuote?'CafeF · '+new Date(publicQuote.as_of).toLocaleString(vi?'vi-VN':'en-US'):text('Price source required','Cần nguồn giá')}</span><em>{publicQuote&&currentPrice===null?text('Provider snapshot','Ảnh chụp dữ liệu nguồn'):t('Verified quote required')}</em></div>
     <div className="ir-company-stat"><span>{t('Market Cap')}</span><strong>{metric('market_cap')}</strong></div>
     <div className="ir-company-stat"><span>{t('P/E (trailing)')}</span><strong>{metric('pe')}</strong></div>
     <div className="ir-company-stat"><span>{t('P/B')}</span><strong>{metric('pb')}</strong></div>
-    <div className="ir-company-stat"><span>{t('Dividend Yield')}</span><strong>{metric('dividend_yield')}</strong></div>
+    <div className="ir-company-stat"><span>{text('EPS (report period)','EPS (kỳ báo cáo)')}</span><strong>{metric('eps')}</strong></div>
     <button type="button" className={'ir-watch-button '+(saved?'is-saved':'')} aria-pressed={saved} onClick={saveResearch}><span aria-hidden="true">{saved?'✓':'☆'}</span>{t(saved?'Saved to research list':'Save research')}</button>
    </div>
    <nav className="ir-tabs" aria-label={t('Investment research sections')}>
     {navSections.map(item=><button type="button" key={item[0]} aria-pressed={activeSection===item[0]} className={activeSection===item[0]?'is-active':''} onClick={()=>jumpTo(item)}>{t(item[0])}</button>)}
    </nav>
-   <div className="ir-disclosure"><span className="ir-disclosure-dot"/>{t(status)}{canUseSec&&<span> · FY {sec.period_end} · {sourceLabel} · NOT VERIFIED FOR VALUATION</span>}</div>
+   <div className="ir-disclosure"><span className="ir-disclosure-dot"/>{loading?text('Loading public financial statements…','Đang tải báo cáo tài chính công khai…'):text(`${readyCount} of 9 financial indicators available`,`${readyCount}/9 chỉ tiêu tài chính đã có dữ liệu`)}</div>
   </section>
 
-  <FinancialSources market={market} onMarket={setMarket} sec={sec} loading={secLoading} error={secStatus} onRefresh={()=>setRefresh(v=>v+1)}/>
+  <FinancialSources market={market} snapshot={snapshot} loading={loading} error={sourceError} onRefresh={()=>setRefresh(v=>v+1)}/>
+
+  <section className="ir-bottom-grid">
+   <article className="ir-card ir-financial-card" id="ir-financials"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">▤</span><div><h2>{t('Key Financial Indicators')}</h2><p>{text('Automatically populated · period and source shown per metric','Tự động điền số liệu · kỳ báo cáo và nguồn theo từng chỉ tiêu')}</p></div></header>
+    <div className="ir-table-scroll"><table className="ir-financial-table" aria-busy={loading}><thead><tr><th>{t('Metric')}</th><th>{t('Value')}</th><th>{text('Period','Kỳ')}</th><th>{text('Source','Nguồn')}</th></tr></thead><tbody>{financialDefinitions.map(([label,id])=>{const fact=selectedMetric(id),ready=usable(fact);return <tr key={id}><th scope="row">{t(label)}</th><td className="ir-financial-value">{ready?formatFinancial(fact,language):loading?text('Loading…','Đang tải…'):'—'}{!ready&&!loading&&<small>{missingReason(fact,vi)}</small>}</td><td>{ready?(fact.period_label||fact.period_type||'TTM'):'—'}</td><td>{ready&&fact.source_url?<a href={fact.source_url} title={fact.formula||text('View source','Xem nguồn')} target="_blank" rel="noopener noreferrer">{fact.provider||snapshot?.provider} ↗</a>:ready?text('Reviewed','Đã duyệt'):'—'}</td></tr>;})}</tbody></table></div>
+
+   </article>
+   <article className="ir-card ir-health-card" id="ir-health"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">◉</span><div><h2>{t('Financial Health Assessment')}</h2><p>{t('Reason-coded diagnostics; no invented health score')}</p></div><span className="ir-health-state">{text('Source data','Số liệu nguồn')}</span></header>
+    <div className="ir-health-content"><div className="ir-health-gauge" role="img" aria-label={text('Financial data coverage','Mức độ đầy đủ dữ liệu')} style={{background:'var(--pref-soft)'}}><div><strong>{readyCount}/9</strong><span>{text('Indicators loaded','Chỉ tiêu đã tải')}</span></div></div><ul className="ir-health-checks">{[['ROE','roe'],['ROA','roa'],[text('Current ratio','Thanh toán hiện hành'),'current_ratio']].map(([label,id])=><li key={id}>{label}: <strong>{metric(id)}</strong></li>)}</ul></div>
+    <aside className="ir-key-insight"><span aria-hidden="true">♧</span><div><strong>{text('Data coverage','Mức độ đầy đủ dữ liệu')}</strong><p>{text('This count measures data availability, not financial health. Open each source to check the figures.','Số lượng trên thể hiện dữ liệu hiện có, không phải điểm sức khỏe tài chính. Mở nguồn để đối chiếu số liệu.')}</p></div></aside>
+
+   </article>
+   <article className="ir-card ir-summary-card"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">✥</span><div><h2>{t('Summary')}</h2><p>{t('Key metrics and research context')}</p></div></header>
+    <div className="ir-summary-list">{reviewedSummary.map(([title,description,ready])=><div className="ir-summary-row" key={title}><span className="ir-summary-icon" aria-hidden="true">{title==='Profitability'?'◉':title==='Growth'?'↗':title==='Valuation'?'▣':title==='Dividends'?'♧':'⬡'}</span><div><strong>{t(title)}</strong><p>{t(description)}</p></div><span className={'ir-summary-status '+(ready?'positive':'neutral')}>{ready?text('Available','Đã có'):text('Needs inputs','Cần đầu vào')}</span></div>)}</div>
+   </article>
+  </section>
+
 
   <section className="ir-top-grid" id="ir-valuation">
    <article className="ir-card ir-valuation-summary"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">◈</span><div><h2>{t('Valuation Summary')}</h2><p>{t('Each eligible method retains its own assumptions and evidence.')}</p></div></header>
@@ -130,31 +135,13 @@ function InvestmentResearchBody({storageKey='pasion',company}){
   </section>
 
   <section className="ir-model-section">
-   <header className="ir-section-heading ir-section-title"><span className="ir-heading-icon" aria-hidden="true">◫</span><div><h2>{t('Valuation Models')}</h2><p>{t('Existing methods connected to reviewed valuation eligibility')}</p></div><span className="ir-model-count">{t('5 models')}</span></header>
+   <header className="ir-section-heading ir-section-title"><span className="ir-heading-icon" aria-hidden="true">◫</span><div><h2>{t('Valuation Models')}</h2><p>{text('Financial data loads automatically. These estimates also need growth, discount rates and other model inputs.','Số liệu tài chính tự tải. Các ước tính này còn cần tăng trưởng, tỷ lệ chiết khấu và đầu vào mô hình.')}</p></div><span className="ir-model-count">{t('5 models')}</span></header>
    <div className="ir-model-grid">{models.map(model=><ValueModelCard key={model.name} model={model} onDetails={setDetail} t={t}/>)}</div>
   </section>
 
-  <section className="ir-bottom-grid">
-   <article className="ir-card ir-financial-card" id="ir-financials"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">▤</span><div><h2>{t('Key Financial Indicators')}</h2><p>{canUseSec?'FY '+sec.period_end+' · SEC':t('Reviewed TTM metrics; peer comparison requires compatible sources')}</p></div></header>
-    <div className="ir-table-scroll"><table className="ir-financial-table"><thead><tr><th>{t('Metric')}</th><th>{t('Value')}</th><th>{t('Industry Avg.')}</th><th>{t('vs. Industry')}</th></tr></thead><tbody>{reviewedFinancialRows.map(([metric,value,average,delta,tone])=><tr key={metric}><th scope="row">{t(metric)}</th><td>{value}</td><td>{average}</td><td className={tone}>{delta}</td></tr>)}</tbody></table></div>
-   </article>
-   <article className="ir-card ir-health-card" id="ir-health"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">◉</span><div><h2>{t('Financial Health Assessment')}</h2><p>{t('Reason-coded diagnostics; no invented health score')}</p></div><span className="ir-health-state">● {t('Unavailable')} <b>→</b></span></header>
-    <div className="ir-health-content"><div className="ir-health-gauge" role="img" aria-label={t('Health score unavailable')} style={{background:'var(--pref-soft)'}}><div><strong>{t('Unavailable')}</strong><span>{t('Overall Score')}</span></div></div><ul className="ir-health-checks">{(displayedFacts?.quality?.flags?.length?displayedFacts.quality.flags.map(flag=>flag.interpretation):['Reviewed health diagnostics incomplete']).map(text=><li key={text}><span>✓</span>{t(text)}</li>)}</ul></div>
-    <aside className="ir-key-insight"><span aria-hidden="true">♧</span><div><strong>{t('Key Insight')}</strong><p>{t(displayedFacts?.quality?.health_heuristic?.reason_codes?.join(', ')||'Reviewed inputs and normalized health policy are required; no score is inferred from missing facts.')}</p></div></aside>
-   </article>
-   <article className="ir-card ir-summary-card"><header className="ir-section-heading"><span className="ir-heading-icon" aria-hidden="true">✥</span><div><h2>{t('Summary')}</h2><p>{t('Key metrics and research context')}</p></div></header>
-    <div className="ir-summary-list">{reviewedSummary.map(([title,description,status,tone])=><div className="ir-summary-row" key={title}><span className="ir-summary-icon" aria-hidden="true">{title==='Profitability'?'◉':title==='Growth'?'↗':title==='Valuation'?'▣':title==='Dividends'?'♧':'⬡'}</span><div><strong>{t(title)}</strong><p>{t(description)}</p></div><span className={'ir-summary-status '+tone}>{t(status)}</span></div>)}</div>
-   </article>
-  </section>
 
   <section className="ir-final-recommendation" id="ir-recommendation"><span className="ir-heading-icon" aria-hidden="true">◈</span><div><h2>{t('Research conclusion')}</h2><p>{t('Review the eligible method results and source assumptions. No automatic BUY recommendation or combined fair value is generated.')}</p><small>{t('Target range and holding period unavailable without an eligible method policy.')}</small></div><button type="button" onClick={()=>setDetail({name:'Research report',full:ticker+' reviewed calculation status',drivers:[['Status',status],['Calculation version',valuation?.calculation_version||'Unavailable'],['Run',valuation?.run_id||'Unavailable'],['Sources',(valuation?.source_ids||[]).join(', ')||'Unavailable']]})}>{t('View detailed report')} <span aria-hidden="true">→</span></button></section>
-  <section className="ir-card" aria-label="Financial filing evidence" style={{padding:18,marginBlock:16}}>
-   <header className="ir-section-heading"><div><h2>Financial filing source</h2><p>{secLoading?'Checking SEC XBRL filings…':canUseSec?"Financial indicators above use the selected company's fiscal-year SEC filing. These machine-read figures have not been human-reviewed.":(secStatus||'Financial figures require an accepted filing or eligible SEC XBRL data.')}</p></div></header>
-   {sec&&<p>{sec.issuer} · FY {sec.period_end} · {sec.source_status} · <a href={sec.filing_url} target="_blank" rel="noopener noreferrer">SEC filing ↗</a></p>}
-   <p>Valuation models use separately accepted issuer facts and reviewed assumptions. SEC machine-read observations never automatically authorize a fair-value estimate.</p>
-   {canUseSec&&<details><summary>Financial fact definitions and source tags</summary>{Object.entries(sec.source_details||{}).map(([key,rows])=><p key={key}><strong>{key}:</strong> {rows.map(r=>r.tag).join(', ')}</p>)}</details>}
-  </section>
-  <footer className="ir-page-footnote">{t('Reviewed calculations populate the existing cards. Missing source facts, assumptions, quotes and peer coverage remain unavailable.')}</footer>
+  <footer className="ir-page-footnote">{text('Statements populate financial indicators automatically. Valuation models require additional assumptions; missing inputs are explained per metric.','Báo cáo tài chính tự điền các chỉ tiêu. Mô hình định giá cần thêm giả định; chỉ tiêu thiếu dữ liệu có ghi rõ lý do.')}</footer>
 
   {detail&&<Dialog title={t(detail.full||detail.name)} onClose={()=>setDetail(null)} className="ir-detail-dialog"><p className="ir-detail-description">{t(status)}</p>{detail.drivers&&<dl>{detail.drivers.map(([label,value])=><div key={label}><dt>{t(label)}</dt><dd>{value}</dd></div>)}</dl>}<p>{t('Model values are sensitive to growth, discount rates, financial statement quality, and market conditions. Review source documents and update the assumptions before using this analysis.')}</p><button type="button" className="ir-dialog-close" onClick={()=>setDetail(null)}>{t('Close')}</button></Dialog>}
  </div>;

@@ -18,5 +18,14 @@ class SourceApiTests(test_finance_api.FinanceApiTests):
   with patch.object(server.sec_filings,'research',return_value={'version':1}) as read:
    self.assertEqual(self.call('GET','/api/research/sec/MSFT?refresh=1')[0],200)
    read.assert_called_once_with('MSFT',True,root=server.ROOT)
+ def test_automatic_financials_require_session_and_route_market(self):
+  self.assertEqual(self.call('GET','/api/research/financials/FPT?market=VN',token='missing')[0],401)
+  with patch.object(server.public_financials,'research',return_value={'version':1,'ticker':'FPT','market':'VN'}) as read:
+   self.assertEqual(self.call('GET','/api/research/financials/FPT?market=VN&refresh=1')[0],200)
+   read.assert_called_once_with(server.ROOT,'FPT','VN',True)
+  self.assertEqual(self.call('GET','/api/research/financials/FPT?market=BAD')[0],422)
+  with patch.object(server.public_financials,'research',side_effect=server.public_financials.Unavailable('NO_PUBLIC_FINANCIALS')):
+   status,data=self.call('GET','/api/research/financials/UNKNOWN?market=VN')
+   self.assertEqual(status,422);self.assertEqual(data['reason_code'],'NO_PUBLIC_FINANCIALS')
 
 if __name__=='__main__':unittest.main()

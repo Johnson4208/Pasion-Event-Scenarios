@@ -1,4 +1,4 @@
-.financial-sources { padding:20px; margin-block:18px; color:var(--pref-text,#122e50); }
+.financial-sources { padding:12px 18px; margin-block:14px; border:1px solid var(--pref-border,#d9e5f2);border-radius:12px;background:var(--pref-surface,#fff);color:var(--pref-text,#122e50);font-size:13px; }
 .financial-sources header,.financial-source-status,.financial-sources form,.financial-sources nav {display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
 .financial-sources h2 {font-size:20px;margin:0 0 6px;}
 .financial-sources p {line-height:1.6;overflow-wrap:anywhere;}
@@ -9,3 +9,21 @@
 .financial-sources details {margin-block:12px;}.financial-sources summary{cursor:pointer;}.financial-sources form{justify-content:flex-start;margin-top:12px;align-items:end;}
 .financial-sources small{display:block;line-height:1.6;margin-top:12px;}
 @media(max-width:650px){.financial-sources header>*,.financial-sources label{width:100%;}.financial-sources{padding:16px;}}
+.financial-source-status>span{display:flex;gap:8px;align-items:center;flex:1;min-width:180px;line-height:1.5;}
+.financial-source-status i{width:7px;height:7px;border-radius:50%;background:#8b9bb0;flex-shrink:0;}
+.financial-source-status i.is-ready{background:#059b74;}
+.financial-source-error{color:var(--pref-text,#34516a);margin:8px 0;}
+.ir-company-search{border:1px solid var(--pref-border,#d9e5f2);border-radius:12px;padding:18px;margin-bottom:22px;background:var(--pref-surface,#fff);color:var(--pref-text,#123450);}
+.ir-company-search form{display:flex;align-items:end;gap:12px;flex-wrap:wrap;}
+.ir-company-search label{display:grid;gap:6px;font-size:13px;}
+.ir-company-search label:first-child{flex:1;min-width:180px;}
+.ir-company-search input,.ir-company-search select,.ir-company-search button{min-height:42px;font:inherit;border:1px solid var(--pref-border,#d9e5f2);border-radius:8px;background:var(--pref-surface,#fff);color:inherit;padding:10px 12px;max-width:100%;}
+.ir-company-search button{cursor:pointer;}
+.ir-company-search button[type=submit]{background:#153d60;color:white;border-color:#153d60;font-weight:600;}
+.ir-company-search>small{display:block;margin-top:10px;line-height:1.5;color:var(--pref-muted,#667c94);}
+.ir-search-results{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.ir-search-results small{color:var(--pref-muted,#667c94);margin-left:5px;}
+.ir-financial-table td.ir-financial-value{white-space:normal;font-variant-numeric:tabular-nums;min-width:130px;}
+.ir-financial-value small{display:block;max-width:240px;font-size:11px;line-height:1.5;color:var(--pref-muted,#667c94);}
+.ir-financial-table a{color:var(--pref-accent,#2468f2);}
+@media(max-width:600px){.ir-company-search{padding:14px;}.ir-company-search label:first-child{flex-basis:100%;}.ir-company-search input{width:100%;box-sizing:border-box;}.ir-company-search form>button{flex:1;}.ir-financial-table{min-width:560px;}}

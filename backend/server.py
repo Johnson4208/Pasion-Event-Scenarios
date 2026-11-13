@@ -24,6 +24,7 @@ import finance_core
 import public_filing_demo
 import sec_filings
 import financial_sources
+import public_financials
 import valuation
 import stock_models
 from market import technical
@@ -878,6 +879,21 @@ class Handler(BaseHTTPRequestHandler):
         if address == '/api/research/financial-sources':
             session = self.current_session()
             self.respond(200, financial_sources.catalog(ROOT, is_admin_email(session['email'])))
+            return
+        auto_route = re.fullmatch(r'/api/research/financials/([A-Za-z0-9.-]{1,16})', address)
+        if auto_route:
+            if not self.current_session():
+                self.respond(401, {'message': 'Please sign in again.'}); return
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                result = public_financials.research(ROOT, auto_route[1], query.get('market', [''])[0],
+                                                   query.get('refresh', ['0'])[0] == '1')
+                self.respond(200, result)
+            except public_financials.Unavailable as exc:
+                self.respond(422, {'version': 1, 'ticker': auto_route[1].upper(),
+                                   'status': 'UNAVAILABLE', 'reason_code': exc.reason})
+            except (ValueError, KeyError, TypeError, ArithmeticError, OSError, sqlite3.Error):
+                self.respond(503, {'status': 'UNAVAILABLE', 'reason_code': 'PUBLIC_FINANCIALS_UNAVAILABLE'})
             return
         sec_route=re.fullmatch(r'/api/research/sec/([A-Za-z0-9.-]{1,16})',address)
         if sec_route:

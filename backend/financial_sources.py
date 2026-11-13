@@ -50,6 +50,7 @@ def catalog(root, can_configure=False):
     return {'version': 1, 'can_configure': can_configure,
             'sec_configured': valid_agent(agent), 'configuration_origin': origin,
             'sources': [
+                {'id': 'cafef', 'market': 'VN', 'kind': 'PUBLIC_FINANCIAL_SNAPSHOTS', 'url': 'https://cafef.vn/du-lieu/'},
                 {'id': 'sec', 'market': 'US', 'kind': 'API', 'url': 'https://www.sec.gov/search-filings/edgar-application-programming-interfaces'},
                 {'id': 'ssc', 'market': 'VN', 'kind': 'OFFICIAL_DOCUMENTS', 'url': 'https://congbothongtin.ssc.gov.vn/'},
                 {'id': 'hnx', 'market': 'VN', 'kind': 'OFFICIAL_DOCUMENTS', 'url': 'https://hnx.vn/'},

@@ -1,0 +1,1157 @@
+{
+  "isSuccess": true,
+  "value": {
+    "templace": [
+      {
+        "code": "KQKD",
+        "name": "Kết quả kinh doanh",
+        "number": 0,
+        "data": [
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_2",
+            "name": "Thu nhập lãi thuần",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_3",
+            "name": "Lãi/lỗ thuần từ hoạt động dịch vụ",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_4",
+            "name": "Lãi/lỗ thuần từ hoạt động kinh doanh ngoại hối và vàng",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_5",
+            "name": "Lãi/lỗ thuần từ mua bán chứng khoán kinh doanh",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_6",
+            "name": "Lãi/lỗ thuần từ mua bán chứng khoán đầu tư",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_7",
+            "name": "Lãi/lỗ thuần từ hoạt động khác",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_8",
+            "name": "Thu nhập từ góp vốn, mua cổ phần",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_9",
+            "name": "Chi phí hoạt động",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "KQKD_10",
+            "name": "Lợi nhuận thuần từ hoạt động kinh doanh trước chi phí dự phòng rủi ro tín dụng",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_11",
+            "name": "Chi phí dự phòng rủi ro tín dụng",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "KQKD_12",
+            "name": "Tổng lợi nhuận trước thuế",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "KQKD_13",
+            "name": "Lợi nhuận sau thuế",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "KQKD_14",
+            "name": "Lợi nhuận sau thuế của cổ đông của Ngân hàng mẹ",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "KQKD_15",
+            "name": "Lãi cơ bản trên cổ phiếu (VNÐ)",
+            "static": true
+          }
+        ]
+      },
+      {
+        "code": "CDKT",
+        "name": "Cân đối kế toán",
+        "number": 1,
+        "data": [
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "CDKT_17",
+            "name": "Tài sản",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_18",
+            "name": "Tiền mặt, vàng bạc, đá quý",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_19",
+            "name": "Tiền gửi tại NHNN",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_20",
+            "name": "Tiền, vàng gửi tại các TCTD khác và cho vay các TCTD khác",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_21",
+            "name": "Chứng khoán kinh doanh",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_22",
+            "name": "Các công cụ tài chính phái sinh và các tài sản tài chính khác",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_23",
+            "name": "Cho vay và cho thuê tài chính khách hàng",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_24",
+            "name": "Chứng khoán đầu tư",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_25",
+            "name": "Góp vốn, đầu tư dài hạn",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_26",
+            "name": "Tài sản cố định",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_27",
+            "name": "Bất động sản đầu tư",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_28",
+            "name": "Tài sản Có khác",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "CDKT_29",
+            "name": "Tổng cộng tài sản",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "CDKT_30",
+            "name": "Nợ phải trả và vốn chủ sở hữu",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_31",
+            "name": "Các khoản nợ Chính phủ và NHNN",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_32",
+            "name": "Tiền gửi và vay các TCTD khác",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_33",
+            "name": "Tiền gửi của khách hàng",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_34",
+            "name": "Các công cụ tài chính phái sinh và các khoản nợ tài chính khác",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_35",
+            "name": "Vốn tài trợ, ủy thác đầu tư, cho vay mà TCTD chịu rủi ro",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_36",
+            "name": "Phát hành giấy tờ có giá",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_37",
+            "name": "Các khoản nợ khác",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_38",
+            "name": "Vốn và các quỹ",
+            "static": false
+          },
+          {
+            "lever": 2,
+            "number": 0,
+            "code": "CDKT_39",
+            "name": "Lợi ích của cổ đông thiểu số",
+            "static": false
+          },
+          {
+            "lever": 1,
+            "number": 0,
+            "code": "CDKT_40",
+            "name": "Tổng nợ phải trả và vốn chủ sở hữu",
+            "static": false
+          }
+        ]
+      }
+    ],
+    "count": 18,
+    "unit": null,
+    "listType": [
+      {
+        "name": "Bản cân đối kế toán",
+        "code": "CDKT"
+      },
+      {
+        "name": "Kết quả kinh doanh",
+        "code": "KQKD"
+      }
+    ],
+    "type": null,
+    "data": [
+      {
+        "code": "KQKD",
+        "name": "Kết quả kinh doanh",
+        "number": 0,
+        "data": [
+          {
+            "symbol": "VCB",
+            "year": 2025,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2025",
+            "data": [
+              {
+                "code": "KQKD_2",
+                "value": 58771410000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_3",
+                "value": 3469867000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_4",
+                "value": 6165112000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_5",
+                "value": 171160000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_6",
+                "value": 3616000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_7",
+                "value": 3591595000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_8",
+                "value": 281862000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_9",
+                "value": 25242799000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_10",
+                "value": 47211823000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_11",
+                "value": 3192186000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_12",
+                "value": 44019637000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_13",
+                "value": 35197940000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_14",
+                "value": 35218217000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_15",
+                "value": 3854,
+                "static": false
+              }
+            ]
+          },
+          {
+            "symbol": "VCB",
+            "year": 2024,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2024",
+            "data": [
+              {
+                "code": "KQKD_2",
+                "value": 55405735000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_3",
+                "value": 5136561000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_4",
+                "value": 5291751000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_5",
+                "value": 62123000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_6",
+                "value": 3444000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_7",
+                "value": 2371703000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_8",
+                "value": 307179000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_9",
+                "value": 23027363000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_10",
+                "value": 45551133000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_11",
+                "value": 3314998000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_12",
+                "value": 42236135000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_13",
+                "value": 33853117000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_14",
+                "value": 33831386000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_15",
+                "value": 5571,
+                "static": false
+              }
+            ]
+          },
+          {
+            "symbol": "VCB",
+            "year": 2023,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2023",
+            "data": [
+              {
+                "code": "KQKD_2",
+                "value": 53620869000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_3",
+                "value": 5779723000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_4",
+                "value": 5660028000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_5",
+                "value": 124217000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_6",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "KQKD_7",
+                "value": 2272169000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_8",
+                "value": 266456000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_9",
+                "value": 21914899000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_10",
+                "value": 45808563000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_11",
+                "value": 4564876000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_12",
+                "value": 41243687000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_13",
+                "value": 33054448000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_14",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "KQKD_15",
+                "value": 5449,
+                "static": false
+              }
+            ]
+          },
+          {
+            "symbol": "VCB",
+            "year": 2022,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2022",
+            "data": [
+              {
+                "code": "KQKD_2",
+                "value": 53246478000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_3",
+                "value": 6839100000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_4",
+                "value": 5768445000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_5",
+                "value": -115194000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_6",
+                "value": 81595000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_7",
+                "value": 2053961000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_8",
+                "value": 208436000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_9",
+                "value": 21250512000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_10",
+                "value": 46832309000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_11",
+                "value": 9464218000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_12",
+                "value": 37368091000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_13",
+                "value": 29919054000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_14",
+                "value": 29899014000000,
+                "static": false
+              },
+              {
+                "code": "KQKD_15",
+                "value": 5821,
+                "static": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "CDKT",
+        "name": "Cân đối kế toán",
+        "number": 1,
+        "data": [
+          {
+            "symbol": "VCB",
+            "year": 2025,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2025",
+            "data": [
+              {
+                "code": "CDKT_17",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_18",
+                "value": 15542769000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_19",
+                "value": 37445504000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_20",
+                "value": 522474362000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_21",
+                "value": 11832577000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_22",
+                "value": 374918000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_23",
+                "value": 1648549996000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_24",
+                "value": 162104164000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_25",
+                "value": 2260727000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_26",
+                "value": 8163312000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_27",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_28",
+                "value": 33530837000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_29",
+                "value": 2442279166000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_30",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_31",
+                "value": 160128325000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_32",
+                "value": 321158102000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_33",
+                "value": 1672534846000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_34",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_35",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_36",
+                "value": 27101221000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_37",
+                "value": 36797946000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_38",
+                "value": 224558726000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_39",
+                "value": 71521000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_40",
+                "value": 2442279166000000,
+                "static": false
+              }
+            ]
+          },
+          {
+            "symbol": "VCB",
+            "year": 2024,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2024",
+            "data": [
+              {
+                "code": "CDKT_17",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_18",
+                "value": 14268064000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_19",
+                "value": 49340493000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_20",
+                "value": 389951898000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_21",
+                "value": 4876237000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_22",
+                "value": 1314434000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_23",
+                "value": 1418015724000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_24",
+                "value": 167383349000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_25",
+                "value": 2228098000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_26",
+                "value": 8092877000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_27",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_28",
+                "value": 30402348000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_29",
+                "value": 2085873522000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_30",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_31",
+                "value": 78237337000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_32",
+                "value": 234533958000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_33",
+                "value": 1514664850000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_34",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_35",
+                "value": 529000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_36",
+                "value": 24125059000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_37",
+                "value": 38102621000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_38",
+                "value": 196209168000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_39",
+                "value": 96261000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_40",
+                "value": 2085873522000000,
+                "static": false
+              }
+            ]
+          },
+          {
+            "symbol": "VCB",
+            "year": 2023,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2023",
+            "data": [
+              {
+                "code": "CDKT_17",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_18",
+                "value": 14504849000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_19",
+                "value": 58104503000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_20",
+                "value": 336468607000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_21",
+                "value": 2495408000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_22",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_23",
+                "value": 1241675333000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_24",
+                "value": 145780067000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_25",
+                "value": 2224945000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_26",
+                "value": 7708181000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_27",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_28",
+                "value": 30651305000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_29",
+                "value": 1839613198000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_30",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_31",
+                "value": 1670837000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_32",
+                "value": 213838980000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_33",
+                "value": 1395697611000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_34",
+                "value": 117752000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_35",
+                "value": 365000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_36",
+                "value": 19912623000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_37",
+                "value": 43362364000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_38",
+                "value": 165012666000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_39",
+                "value": 93990000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_40",
+                "value": 1839613198000000,
+                "static": false
+              }
+            ]
+          },
+          {
+            "symbol": "VCB",
+            "year": 2022,
+            "quater": 0,
+            "type": "HK",
+            "content": "Đã kiểm toán",
+            "time": "2022",
+            "data": [
+              {
+                "code": "CDKT_17",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_18",
+                "value": 18348534000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_19",
+                "value": 92557809000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_20",
+                "value": 313637444000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_21",
+                "value": 1499687000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_22",
+                "value": 156515000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_23",
+                "value": 1120286832000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_24",
+                "value": 196171213000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_25",
+                "value": 2193535000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_26",
+                "value": 7985400000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_27",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_28",
+                "value": 60978201000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_29",
+                "value": 1813815170000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_30",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_31",
+                "value": 67314816000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_32",
+                "value": 232510850000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_33",
+                "value": 1243468471000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_34",
+                "value": 0,
+                "static": false
+              },
+              {
+                "code": "CDKT_35",
+                "value": 3298000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_36",
+                "value": 25337894000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_37",
+                "value": 109533756000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_38",
+                "value": 135646085000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_39",
+                "value": 88383000000,
+                "static": false
+              },
+              {
+                "code": "CDKT_40",
+                "value": 1813815170000000,
+                "static": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "errors": []
+}

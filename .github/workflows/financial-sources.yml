@@ -4,20 +4,32 @@ on:
     branches: [master, main]
     paths:
       - 'backend/financial_sources.py'
+      - 'backend/public_financials.py'
+      - 'backend/test_public_financials.py'
+      - 'backend/fixtures/public_financials/**'
       - 'backend/sec_filings.py'
       - 'backend/server.py'
       - 'src/FinancialSources.jsx'
       - 'src/financial-sources.scss'
       - 'src/InvestmentResearch.jsx'
+      - 'src/ResearchCompanySearch.jsx'
+      - 'src/automaticFinancials.js'
+      - 'src/HomePage.jsx'
+      - 'unit/automatic-financials.test.js'
       - 'tests/financial-sources.spec.js'
       - 'backend/test_financial_sources*.py'
       - '.github/workflows/financial-sources.yml'
   pull_request:
     paths:
       - 'backend/financial_sources.py'
+      - 'backend/public_financials.py'
+      - 'backend/test_public_financials.py'
       - 'backend/sec_filings.py'
       - 'src/FinancialSources.jsx'
       - 'src/InvestmentResearch.jsx'
+      - 'src/ResearchCompanySearch.jsx'
+      - 'src/automaticFinancials.js'
+      - 'src/HomePage.jsx'
       - 'tests/financial-sources.spec.js'
       - '.github/workflows/financial-sources.yml'
 permissions:
@@ -37,7 +49,16 @@ jobs:
           cache: npm
       - run: python -m unittest discover -s backend -p 'test_financ*.py'
       - run: python -m unittest discover -s backend -p 'test_sec_filings.py'
+      - run: python -m unittest discover -s backend -p 'test_public_financials.py'
       - run: npm ci
       - run: npm run build
+      - run: node --test unit/automatic-financials.test.js
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui -- tests/financial-sources.spec.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-financials-ui
+          path: |
+            artifacts/automatic-financials-*.png
+            test-results/
