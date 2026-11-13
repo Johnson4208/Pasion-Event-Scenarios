@@ -19,7 +19,7 @@ export default function ResearchCompanySearch({company,query='',onQuery,onChoose
  const [market,setMarket]=useState(companyMarket(company));const [error,setError]=useState('');
  const matches=query.trim()?directory.filter(c=>(c.ticker+' '+c.name).toLowerCase().includes(query.toLowerCase())).slice(0,6):[];
  function choose(c){setMarket(c.market);setError('');onChoose(c);onQuery('');}
- function submit(e){e.preventDefault();const exact=directory.find(c=>c.market===market&&c.ticker===query.trim().toUpperCase());const c=exact||(/^[A-Za-z0-9.-]{1,16}$/.test(query.trim())?{ticker:query.trim().toUpperCase(),name:query.trim().toUpperCase(),market,country:market==='VN'?'Vietnam':'United States'}:researchCompany(query,market));if(c)choose(c);else setError(text('Enter a stock ticker or select a company.','Nhập mã cổ phiếu hoặc chọn doanh nghiệp.'));}
+ function submit(e){e.preventDefault();const c=researchCompany(query,market);if(c)choose(c);else setError(text('Enter a stock ticker or select a company.','Nhập mã cổ phiếu hoặc chọn doanh nghiệp.'));}
  return <div className="ir-company-search"><form onSubmit={submit} aria-label={text('Find company financials','Tìm số liệu doanh nghiệp')}>
   <label>{text('Company or ticker','Doanh nghiệp hoặc mã cổ phiếu')}<input aria-label={text('Financial company search','Tìm công ty để phân tích')} value={query} onChange={e=>{onQuery(e.target.value);setError('');}} placeholder="FPT, HPG, AAPL, MSFT…" autoComplete="off"/></label>
   <label>{text('Market','Thị trường')}<select aria-label={text('Company market','Thị trường của công ty')} value={market} onChange={e=>setMarket(e.target.value)}><option value="VN">{text('Vietnam','Việt Nam')}</option><option value="US">{text('United States','Hoa Kỳ')}</option></select></label>

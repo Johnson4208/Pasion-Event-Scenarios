@@ -35,11 +35,22 @@ test('company selection automatically fills the actual table without a source pi
 });
 
 test('top search Enter also changes the company and loads new figures',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/#investment-research');
  const search=page.getByRole('textbox',{name:'Search companies',exact:true});
  await search.fill('HPG');await search.press('Enter');
  await expect(page.locator('.ir-company-tags')).toContainText('HPG');
  await expect(page.locator('.ir-financial-table')).toContainText('156,116,094,618,482 VND');
+ await expect(page.getByRole('combobox',{name:'Company market',exact:true})).toHaveValue('VN');
+ expect(errors).toEqual([]);
+});
+
+test('submitting a known Vietnamese ticker infers its market',async({page})=>{
+ await page.goto('/#investment-research');
+ await page.getByRole('textbox',{name:'Financial company search',exact:true}).fill('FPT');
+ await page.getByRole('textbox',{name:'Financial company search',exact:true}).press('Enter');
+ await expect(page.locator('.ir-company-tags')).toContainText('FPT');
+ await expect(page.locator('.ir-financial-table')).toContainText('70,112,825,100,710 VND');
 });
 
 test('reviewed values take precedence per metric while missing values fill from provider',async({page})=>{
