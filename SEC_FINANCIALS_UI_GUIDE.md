@@ -33,6 +33,8 @@ SEC requests require outbound HTTPS and are subject to SEC rate limits and acces
 
 The existing DCF/FCFF, P/E, DDM, Gordon and asset-based cards remain **WITHHELD** without sufficient reviewer-accepted company facts, approved forecasting assumptions, sector policy, relevant quote and unit context. Raw SEC XBRL is a lower-trust preview only and **must never become an approved BUY or fair-value calculation automatically**.
 
+Each card also offers an interactive calculator. Source values can prefill compatible fields; users supply missing assumptions. These calculations are labeled **Your scenario**, not reviewer-approved values, and never modify accepted financial facts. The Financials dialog now exposes eligible numeric XBRL facts and original SEC filing links alongside the compact indicator table.
+
 ## Reproducible tests
 
 ```powershell

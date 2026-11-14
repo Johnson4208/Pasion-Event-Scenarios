@@ -28,10 +28,3 @@
 .ir-financial-table a{color:var(--pref-accent,#2468f2);}
 @media(max-width:600px){.ir-company-search{padding:14px;}.ir-company-search label:first-child{flex-basis:100%;}.ir-company-search input{width:100%;box-sizing:border-box;}.ir-company-search form>button{flex:1;}.ir-financial-table{min-width:560px;}}
 
-/* Keep annual figures and their provenance readable at dashboard widths. */
-.investment-research .ir-bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;}
-.investment-research .ir-financial-card{grid-column:1 / -1;}
-.investment-research .ir-summary-card{grid-column:auto;}
-.investment-research .ir-summary-list{grid-template-columns:1fr;}
-.ir-financial-table td:last-child{white-space:nowrap;}
-@media(max-width:600px){.investment-research .ir-bottom-grid{grid-template-columns:1fr;}}

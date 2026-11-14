@@ -12,6 +12,14 @@ on:
       - 'src/FinancialSources.jsx'
       - 'src/financial-sources.scss'
       - 'src/InvestmentResearch.jsx'
+      - 'src/FinancialStatements.jsx'
+      - 'src/ValuationCalculator.jsx'
+      - 'src/valuationCalculators.js'
+      - 'src/financialMetricLabels.js'
+      - 'src/financial-statements.scss'
+      - 'backend/financial_reports.py'
+      - 'backend/test_financial_reports.py'
+      - 'unit/valuation-calculators.test.js'
       - 'src/ResearchCompanySearch.jsx'
       - 'src/automaticFinancials.js'
       - 'src/HomePage.jsx'
@@ -27,6 +35,14 @@ on:
       - 'backend/sec_filings.py'
       - 'src/FinancialSources.jsx'
       - 'src/InvestmentResearch.jsx'
+      - 'src/FinancialStatements.jsx'
+      - 'src/ValuationCalculator.jsx'
+      - 'src/valuationCalculators.js'
+      - 'src/financialMetricLabels.js'
+      - 'src/financial-statements.scss'
+      - 'backend/financial_reports.py'
+      - 'backend/test_financial_reports.py'
+      - 'unit/valuation-calculators.test.js'
       - 'src/ResearchCompanySearch.jsx'
       - 'src/automaticFinancials.js'
       - 'src/HomePage.jsx'
@@ -52,7 +68,7 @@ jobs:
       - run: python -m unittest discover -s backend -p 'test_public_financials.py'
       - run: npm ci
       - run: npm run build
-      - run: node --test unit/automatic-financials.test.js
+      - run: node --test unit/automatic-financials.test.js unit/valuation-calculators.test.js
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui -- tests/financial-sources.spec.js
       - uses: actions/upload-artifact@v4

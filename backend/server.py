@@ -25,6 +25,7 @@ import public_filing_demo
 import sec_filings
 import financial_sources
 import public_financials
+import financial_reports
 import valuation
 import stock_models
 from market import technical
@@ -879,6 +880,30 @@ class Handler(BaseHTTPRequestHandler):
         if address == '/api/research/financial-sources':
             session = self.current_session()
             self.respond(200, financial_sources.catalog(ROOT, is_admin_email(session['email'])))
+            return
+        report_route = re.fullmatch(r'/api/research/reports/([A-Za-z0-9.-]{1,16})(?:/([a-f0-9]{24}))?', address)
+        if report_route:
+            query = parse_qs(urlparse(self.path).query)
+            market = query.get('market', [''])[0]
+            try:
+                if report_route[2]:
+                    path, row = financial_reports.download(ROOT, report_route[1], market, report_route[2])
+                    content = path.read_bytes()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/pdf')
+                    self.send_header('Content-Length', str(len(content)))
+                    self.send_header('Content-Disposition', f'attachment; filename="{report_route[1].upper()}-{row["year"]}-{row["id"]}.pdf"')
+                    self.send_header('Cache-Control', 'private, no-store')
+                    self.send_header('X-Content-Type-Options', 'nosniff')
+                    self.end_headers()
+                    self.wfile.write(content)
+                else:
+                    self.respond(200, financial_reports.catalog(ROOT, report_route[1], market,
+                        query.get('year', [None])[0], query.get('refresh', ['0'])[0] == '1'))
+            except financial_reports.ReportError as exc:
+                self.respond(422, {'version': 1, 'status': 'UNAVAILABLE', 'reason_code': str(exc)})
+            except (OSError, ValueError, TypeError, KeyError):
+                self.respond(503, {'status': 'UNAVAILABLE', 'reason_code': 'REPORT_ARCHIVE_UNAVAILABLE'})
             return
         auto_route = re.fullmatch(r'/api/research/financials/([A-Za-z0-9.-]{1,16})', address)
         if auto_route:

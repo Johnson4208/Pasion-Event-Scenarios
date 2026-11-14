@@ -186,6 +186,41 @@ def normalize(companyfacts,ticker,cik):
    "facts":facts})
  return payloads,filings[-1]
 
+def statement_tables(companyfacts,filings,cik):
+ """Expose all eligible issuer-wide numeric XBRL tags, not only TAG_MAP."""
+ periods=[{'id':f['end']+':'+f['accn'],'label':'FY '+f['end'], 'year':int(f['end'][:4]),
+           'basis':f['accn'],'description':f.get('form','10-K'),
+           'source_url':f"https://www.sec.gov/Archives/edgar/data/{cik}/{f['accn'].replace('-','')}/{f['accn']}-index.html"}
+          for f in reversed(filings)]
+ result=[]
+ for taxonomy,tags in companyfacts.get('facts',{}).items():
+  if taxonomy=='dei' or not isinstance(tags,dict):continue
+  lines=[]
+  for tag,record in tags.items():
+   for unit,observations in record.get('units',{}).items():
+    values={}; conflicts=[]
+    for filing in reversed(filings):
+     key=filing['end']+':'+filing['accn']; candidates=set()
+     for fact in observations:
+      if fact.get('accn')!=filing['accn'] or fact.get('end')!=filing['end'] or fact.get('form')!='10-K':continue
+      if fact.get('start') not in (None,filing['start']):continue
+      try:
+       value=Decimal(str(fact['val']))
+       if value.is_finite():candidates.add(value)
+      except (KeyError,ValueError,ArithmeticError):continue
+     values[key]=str(next(iter(candidates))) if len(candidates)==1 else None
+     if len(candidates)>1:conflicts.append(key)
+    if not any(v is not None for v in values.values()) and not conflicts:continue
+    currency='USD' if unit in ('USD','USD/shares') else None
+    lines.append({'id':taxonomy+':'+tag+':'+unit,'code':taxonomy+':'+tag,
+                  'label':record.get('label',tag),'description':record.get('description',''),
+                  'unit':'currency' if unit=='USD' else 'currency/share' if unit=='USD/shares' else unit,
+                  'currency':currency,'values':values,'conflicting_periods':conflicts})
+  if lines:result.append({'id':'xbrl-'+taxonomy,'category':'xbrl','title':taxonomy+' · reported XBRL facts',
+                         'periods':periods,'rows':lines,'provider':'SEC',
+                         'source_url':periods[0]['source_url']})
+ return result
+
 def build(ticker,agent):
  cik,name=ticker_cik(ticker,agent)
  data=fetch_json(SEC_HOST+"/api/xbrl/companyfacts/CIK"+str(cik).zfill(10)+".json",agent)
@@ -201,11 +236,13 @@ def build(ticker,agent):
     sources=[finance_core.evidence(root,s) for s in record["source_ids"]]
     source_details[metric]=[{"tag":s.get("source_line_label"),"url":s.get("source_url"),
       "filing":s.get("report_id"),"period_end":s.get("period_end")} for s in sources if s]
+  tables=statement_tables(data,annual_filings(data.get('facts',{}).get('us-gaap',{})),cik)
   return {"version":1,"ticker":ticker.upper(),"issuer":result["company"]["name"],
    "period":"FY","period_end":end,"source_status":"SEC_MACHINE_XBRL_NOT_HUMAN_REVIEWED",
    "filing_url":payloads[-1]["reports"][0]["source_url"],
    "filing_accession":last["accn"],
-   "source_details":source_details,"financials":result,
+   "source_details":source_details,"financials":result,"statements":tables,
+   "statement_row_count":sum(len(t['rows']) for t in tables),
    "review_required_for_valuation":True}
 
 def apple_reference():
@@ -241,7 +278,7 @@ def research(ticker,refresh=False,root=None):
    try:
     entry=json.loads(cache_path.read_text(encoding='utf-8'))
     result=entry['result'];stamp=entry['timestamp']
-    if (entry.get('cache_version')==1 and isinstance(stamp,(int,float)) and
+    if (entry.get('cache_version')==2 and isinstance(stamp,(int,float)) and
         0<=time.time()-stamp and result.get('version')==1 and result.get('ticker')==ticker and
         result.get('source_status')=='SEC_MACHINE_XBRL_NOT_HUMAN_REVIEWED'):
      previous=(stamp,result)
@@ -262,7 +299,7 @@ def research(ticker,refresh=False,root=None):
   stamp=time.time()
   result={**result,'retrieved_at':datetime.fromtimestamp(stamp,timezone.utc).isoformat()}
   CACHE[key]=(stamp,result)
-  try:financial_sources.atomic_json(cache_path,{'cache_version':1,'timestamp':stamp,'result':result})
+  try:financial_sources.atomic_json(cache_path,{'cache_version':2,'timestamp':stamp,'result':result})
   except OSError:
    return {**result,'cache_status':'LIVE','cache_persisted':False}
   return {**result,'cache_status':'LIVE','cache_persisted':True}

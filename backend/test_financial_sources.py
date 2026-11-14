@@ -38,7 +38,7 @@ class SourceTests(unittest.TestCase):
    self.assertEqual(second['cache_status'],'FRESH');self.assertEqual(build.call_count,1)
  def test_stale_copy_labeled_on_outage(self):
   self.configure();stamp=time.time()-sec_filings.TTL-1
-  financial_sources.atomic_json(financial_sources.directory(self.root)/'sec-MSFT.json',{'cache_version':1,'timestamp':stamp,'result':self.result()})
+  financial_sources.atomic_json(financial_sources.directory(self.root)/'sec-MSFT.json',{'cache_version':2,'timestamp':stamp,'result':self.result()})
   with patch.object(sec_filings,'build',side_effect=sec_filings.FilingUnavailable('SEC_NETWORK_UNAVAILABLE')):
    result=sec_filings.research('MSFT',root=self.root)
   self.assertEqual(result['cache_status'],'STALE');self.assertEqual(result['refresh_error'],'SEC_NETWORK_UNAVAILABLE')

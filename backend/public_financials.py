@@ -21,6 +21,7 @@ import financial_sources
 import sec_filings
 
 VERSION = 1
+CACHE_VERSION = 2
 TTL = 6 * 3600
 CACHE = {}
 ATTEMPTS = {}
@@ -33,6 +34,7 @@ FEEDS = {
     'summary': BASE + 'v1/BCTC/GetReportSummary',
     'balance': BASE + 'v2/BCTC/GetReportCDKT',
     'cash': BASE + 'v1/BCTC/GetReportLCTT',
+    'income': BASE + 'v1/BCTC/GetReportDetail',
 }
 
 
@@ -78,10 +80,46 @@ def plain(value):
     return ' '.join(re.sub(r'[^a-z0-9]+', ' ', ''.join(c for c in text if not unicodedata.combining(c))).split())
 
 
+def grouped_payload(payload):
+    """Adapt the detailed income endpoint, including its documented 2026 code migration."""
+    if not isinstance(payload, dict) or not isinstance(payload.get('value'), dict):
+        return payload
+    value = payload['value']
+    templates = value.get('templace') or []
+    if not templates or 'data' in templates[0]:
+        return payload
+    result = copy.deepcopy(payload)
+    value = result['value']
+    labels = {str(r.get('code', '')).strip(): plain(r.get('name', '')) for r in templates}
+    industrial_2026 = ('lai lo cua hoat dong ban thanh ly bat dong san dau tu' in labels.get('21', '') and
+                       'doanh thu hoat dong tai chinh' in labels.get('22', '') and
+                       'chi phi lai vay' in labels.get('24', ''))
+    periods = value.get('data', [])
+    if industrial_2026:
+        mapping = {'22': '21', '23': '22', '24': '23', '27': '24'}
+        for period in periods:
+            if type(period.get('year')) is int and period['year'] <= 2025:
+                original = {str(c.get('code', '')).strip(): c for c in period.get('data', [])}
+                converted = []
+                for template in templates:
+                    code = str(template['code']).strip()
+                    if code == '21':  # New property-disposal line has no old-form counterpart.
+                        continue
+                    old_code = mapping.get(code, code)
+                    if old_code in original:
+                        converted.append({**original[old_code], 'code': code, 'source_code': old_code})
+                period['data'] = converted
+    kind = value.get('type', 'KQKD')
+    value['templace'] = [{'code': kind, 'name': 'Kết quả hoạt động kinh doanh', 'data': templates}]
+    value['data'] = [{'code': kind, 'data': periods}]
+    return result
+
+
 def groups(payload, ticker):
     """Validate identity and template, retain period + report basis for every cell."""
     if not isinstance(payload, dict) or payload.get('isSuccess') is not True:
         raise Unavailable('INVALID_PROVIDER_RESPONSE')
+    payload = grouped_payload(payload)
     value = payload.get('value')
     if not isinstance(value, dict) or not isinstance(value.get('data'), list):
         raise Unavailable('INVALID_PROVIDER_RESPONSE')
@@ -111,7 +149,7 @@ def groups(payload, ticker):
                 if val is not None:
                     if tag in cells and cells[tag]['value'] != val:
                         raise Unavailable('CONFLICTING_PROVIDER_VALUES')
-                    cells[tag] = {'value': val, 'label': labels[tag], 'tag': code + ':' + tag,
+                    cells[tag] = {'value': val, 'label': labels[tag], 'tag': code + ':' + str(cell.get('source_code', tag)),
                                   'year': year, 'report_type': period['type']}
             if key in periods and cells != periods[key]:
                 raise Unavailable('CONFLICTING_PROVIDER_PERIODS')
@@ -120,12 +158,48 @@ def groups(payload, ticker):
     return result
 
 
+def statement_tables(ticker, payload, category, only=None):
+    """Keep every published template line, including missing cells and actual zeroes."""
+    if not payload:
+        return []
+    payload = grouped_payload(payload)
+    validated = groups(payload, ticker)
+    tables = []
+    for template in payload['value']['templace']:
+        code = str(template['code'])
+        if only and code not in only:
+            continue
+        periods = validated.get(code, {})
+        if not periods:
+            continue
+        metadata = next((g for g in payload['value']['data'] if str(g.get('code')) == code), {})
+        labels = {(p.get('year'), p.get('type')): p.get('content', '') for p in metadata.get('data', [])}
+        keys = sorted(periods, reverse=True)
+        rows = []
+        for row in template['data']:
+            tag = str(row['code']).strip()
+            name = ' '.join(str(row['name']).split())
+            if not tag:
+                continue
+            eps = 'co phieu' in plain(name) and ('lai co ban' in plain(name) or 'lai suy giam' in plain(name))
+            rows.append({'id': code + ':' + tag, 'code': tag, 'label': name,
+                         'unit': 'currency/share' if eps else 'currency', 'currency': 'VND',
+                         'values': {str(year) + ':' + basis: str(periods[(year, basis)][tag]['value'])
+                                    if tag in periods[(year, basis)] else None for year, basis in keys}})
+        tables.append({'id': category + '-' + code, 'category': category, 'title': template.get('name', code),
+                       'periods': [{'id': str(year) + ':' + basis, 'label': 'FY ' + str(year),
+                                    'year': year, 'basis': basis, 'description': labels.get((year, basis), '')}
+                                   for year, basis in keys], 'rows': rows, 'provider': 'CafeF',
+                       'source_url': 'https://cafef.vn/du-lieu/' + ticker.lower() + '/bao-cao-tai-chinh.chn'})
+    return tables
+
+
 def select(cells, tag, label_fragment):
     cell = cells.get(tag)
     return cell if cell and plain(label_fragment) in plain(cell['label']) else None
 
 
-def normalize(ticker, summary, balance=None, cash=None):
+def normalize(ticker, summary, balance=None, cash=None, income_detail=None):
     root = groups(summary, ticker)
     income, sheet = root.get('KQKD', {}), root.get('CDKT', {})
     eligible = set(income) & set(sheet)
@@ -141,6 +215,7 @@ def normalize(ticker, summary, balance=None, cash=None):
     inc, bs, opening = income[current], sheet[current], sheet.get(prior, {})
     detail = groups(balance, ticker) if balance else {}
     flow = groups(cash, ticker) if cash else {}
+    full_income = groups(income_detail, ticker) if income_detail else {}
     nv = detail.get('NV', {}).get(current, {})
     operating = flow.get('HDKD', {}).get(current, {})
     investing = flow.get('HDDT', {}).get(current, {})
@@ -190,11 +265,13 @@ def normalize(ticker, summary, balance=None, cash=None):
     nci = select(bs, 'CDKT_35', 'Lợi ích của cổ đông thiểu số')
     old_nci = select(opening, 'CDKT_35', 'Lợi ích của cổ đông thiểu số')
     old_equity = select(opening, 'CDKT_31', 'Vốn chủ sở hữu')
+    put('common_equity', [equity, nci], lambda v: v[0] - v[1], formula='Equity − non-controlling interests')
     put('roe', [parent, old_equity, old_nci, equity, nci],
         lambda v: ratio(v[0], (v[1] - v[2] + v[3] - v[4]) / 2) * 100, '%',
         'Profit attributable to owners / average equity attributable to owners × 100')
     if bank:
         # Bank equity template lists owners' capital and reserves separately from NCI.
+        put('common_equity', [equity])
         put('roe', [parent, select(opening, 'CDKT_38', 'Vốn và các quỹ'), equity],
             lambda v: ratio(v[0], (v[1] + v[2]) / 2) * 100, '%',
             'Profit attributable to bank owners / average capital and reserves × 100')
@@ -221,14 +298,77 @@ def normalize(ticker, summary, balance=None, cash=None):
     put('ebitda_margin', [], unit='%', reason='EBITDA_EXPENSE_RECONCILIATION_REQUIRED')
     put('revenue_growth', [rev, select(income.get(prior, {}), 'KQKD_2', 'Doanh thu thuần')],
         lambda v: (ratio(*v) - 1) * 100, '%', 'Revenue / previous fiscal-year revenue − 1')
+    # Expanded direct observations and ratios. All operands retain the same annual
+    # report basis. Bank templates are handled separately, never as industrials.
+    income_full = full_income.get('KQKD', {}).get(current, {})
+    financing = flow.get('HDTC', {}).get(current, {})
+    cash_balance = put('cash', [select(bs, 'CDKT_18', 'Tiền và các khoản tương đương tiền')])
+    inventory = put('inventories', [select(bs, 'CDKT_21', 'Hàng tồn kho')])
+    receivables = put('receivables', [select(bs, 'CDKT_20', 'Các khoản phải thu ngắn hạn')])
+    liabilities = put('liabilities', [select(bs, 'CDKT_28', 'Nợ phải trả')])
+    gross_profit = put('gross_profit', [select(inc, 'KQKD_4', 'Lợi nhuận gộp')])
+    cogs = put('cost_of_revenue', [select(inc, 'KQKD_3', 'Giá vốn hàng bán')])
+    operating_profit = put('operating_profit', [select(inc, 'KQKD_9', 'Lợi nhuận thuần từ hoạt động kinh doanh')])
+    pretax = put('pretax_income', [select(inc, 'KQKD_12', 'Tổng lợi nhuận kế toán trước thuế')])
+    interest = put('interest_expense', [select(income_full, '24', 'Chi phí lãi vay')])
+    for key, source, tag, label in [
+            ('financial_income', inc, 'KQKD_5', 'Doanh thu hoạt động tài chính'),
+            ('financial_expense', inc, 'KQKD_6', 'Chi phí tài chính'),
+            ('selling_expense', inc, 'KQKD_7', 'Chi phí bán hàng'),
+            ('administrative_expense', inc, 'KQKD_8', 'Chi phí quản lý doanh nghiệp'),
+            ('noncurrent_assets', bs, 'CDKT_23', 'Tài sản dài hạn'),
+            ('fixed_assets', bs, 'CDKT_24', 'Tài sản cố định'),
+            ('short_investments', bs, 'CDKT_19', 'Các khoản đầu tư tài chính ngắn hạn'),
+            ('long_liabilities', bs, 'CDKT_30', 'Nợ dài hạn'),
+            ('retained_earnings', bs, 'CDKT_34', 'Lợi nhuận sau thuế chưa phân phối'),
+            ('payables', nv, '311', 'Phải trả người bán ngắn hạn'),
+            ('investing_cash_flow', investing, 'HDDT_29', 'Lưu chuyển tiền thuần từ hoạt động đầu tư'),
+            ('financing_cash_flow', financing, 'HDTC_38', 'Lưu chuyển tiền thuần từ hoạt động tài chính'),
+            ('cash_change', financing, 'HDTC_39', 'Lưu chuyển tiền thuần trong kỳ'),
+            ('dividends_paid', financing, 'HDTC_36', 'Cổ tức, lợi nhuận đã trả'),
+            ('current_tax', income_full, '51', 'Chi phí thuế TNDN hiện hành'),
+            ('deferred_tax', income_full, '52', 'Chi phí thuế TNDN hoãn lại')]:
+        put(key, [select(source, tag, label)])
+    put('eps_diluted', [select(income_full, '71', 'Lãi suy giảm')], unit='currency/share')
+    put('debt', [short_debt, long_debt], lambda v: sum(v), formula='Short-term + long-term borrowings and leases')
+    put('short_debt', [short_debt]); put('long_debt', [long_debt])
+    put('net_debt', [short_debt, long_debt, cash_balance], lambda v: v[0] + v[1] - v[2], formula='Borrowings and leases − cash and equivalents')
+    put('working_capital', [ca, cl], lambda v: v[0] - v[1], formula='Current assets − current liabilities')
+    put('capex', [capex], lambda v: -v[0], formula='Absolute cash payments for fixed and other long-term assets',
+        reason='CASH_FLOW_RECONCILIATION_REQUIRED' if not cash_reconciles else 'MISSING_SOURCE_INPUTS')
+    for key, numerator, denominator, formula in [
+            ('gross_margin', gross_profit, rev, 'Gross profit / revenue × 100'),
+            ('operating_margin', operating_profit, rev, 'Source operating profit / revenue × 100'),
+            ('pretax_margin', pretax, rev, 'Pretax income / revenue × 100'),
+            ('liabilities_assets', liabilities, assets, 'Total liabilities / assets × 100'),
+            ('equity_assets', equity, assets, 'Equity / assets × 100'),
+            ('cfo_margin', cfo, rev, 'Operating cash flow / revenue × 100')]:
+        put(key, [numerator, denominator], lambda v: ratio(*v) * 100, '%', formula)
+    put('quick_ratio', [ca, inventory, cl], lambda v: ratio(v[0] - v[1], v[2]), 'x', '(Current assets − inventory) / current liabilities')
+    put('cash_ratio', [cash_balance, cl], lambda v: ratio(*v), 'x', 'Cash and equivalents / current liabilities')
+    put('cfo_net_income', [cfo, profit], lambda v: ratio(*v), 'x', 'Operating cash flow / net income')
+    put('cfo_current_liabilities', [cfo, cl], lambda v: ratio(*v), 'x', 'Operating cash flow / current liabilities')
+    put('asset_turnover', [rev, select(opening, 'CDKT_27', 'Tổng cộng tài sản'), assets],
+        lambda v: ratio(v[0], (v[1] + v[2]) / 2), 'x', 'Revenue / average total assets')
+    put('inventory_turnover', [cogs, select(opening, 'CDKT_21', 'Hàng tồn kho'), inventory],
+        lambda v: ratio(v[0], (v[1] + v[2]) / 2), 'x', 'Cost of revenue / average inventory')
+    put('net_income_growth', [profit, select(income.get(prior, {}), 'KQKD_13', 'Lợi nhuận sau thuế')],
+        lambda v: (ratio(*v) - 1) * 100, '%', 'Net income / previous annual net income − 1')
+    put('ebit', [pretax, interest], lambda v: v[0] + v[1], formula='Pretax income + interest expense')
+    put('interest_coverage', [pretax, interest], lambda v: ratio(v[0] + v[1], v[1]), 'x',
+        '(Pretax income + interest expense) / interest expense')
     if bank:
         for key in ('revenue', 'revenue_growth', 'net_margin', 'ebitda_margin', 'current_ratio', 'debt_equity', 'free_cash_flow'):
             metrics[key].update(status='UNAVAILABLE', value=None, reason_codes=['BANK_METRIC_NOT_APPLICABLE'])
     if not any(m['status'] == 'READY' for m in metrics.values()):
         raise Unavailable('UNSUPPORTED_REPORT_TEMPLATE')
+    tables = (statement_tables(ticker, income_detail or summary, 'income', {'KQKD'}) +
+              statement_tables(ticker, balance or summary, 'balance', None if balance else {'CDKT'}) +
+              statement_tables(ticker, cash, 'cash_flow'))
     return {'version': VERSION, 'ticker': ticker, 'market': 'VN', 'provider': 'CafeF', 'issuer': ticker,
             'period': 'FY', 'period_end': str(newest), 'source_url': url, 'report_type': basis,
             'source_status': 'PUBLIC_PROVIDER_NOT_HUMAN_REVIEWED', 'review_required_for_valuation': True,
+            'statements': tables, 'statement_row_count': sum(len(table['rows']) for table in tables),
             'financials': {'version': 1, 'status': 'READY', 'company': {'ticker': ticker, 'name': ticker},
                            'period': 'FY', 'period_end': str(newest), 'metrics': metrics}}
 
@@ -242,6 +382,7 @@ def build_vietnam(ticker):
             return name, None, exc.reason
     endpoints = {name: url + '?symbol=' + ticker + '&pageIndex=1&pageSize=4&reportType=ALL&TypeTime=NAM'
                  for name, url in FEEDS.items()}
+    endpoints['income'] = endpoints['income'].replace('reportType=ALL', 'reportType=KQKD')
     endpoints['identity'] = 'https://cafef.vn/du-lieu/Ajax/PageNew/CompanyIntro.ashx?Symbol=' + ticker
     endpoints['market'] = 'https://cafef.vn/du-lieu/Ajax/PageNew/ChiSoTaiChinh.ashx?Symbol=' + ticker
     endpoints['quote'] = 'https://cafef.vn/du-lieu/Ajax/PageNew/PriceRealTimeHeader.ashx?Symbol=' + ticker
@@ -252,7 +393,7 @@ def build_vietnam(ticker):
         raise Unavailable(next(error for name, _, error in rows if name == 'summary'))
     warnings = [name + ': ' + error for name, _, error in rows if error]
     # Supplemental outages do not erase already downloaded financial statements.
-    for name in ('balance', 'cash'):
+    for name in ('balance', 'cash', 'income'):
         try:
             if data[name] is not None:
                 groups(data[name], ticker)
@@ -261,7 +402,7 @@ def build_vietnam(ticker):
                 raise
             warnings.append(name + ': ' + exc.reason)
             data[name] = None
-    result = normalize(ticker, data['summary'], data['balance'], data['cash'])
+    result = normalize(ticker, data['summary'], data['balance'], data['cash'], data['income'])
     identity = (data.get('identity') or {}).get('Data') or {}
     if identity.get('Symbol', '').upper() == ticker and identity.get('Name'):
         result['issuer'] = identity['Name']
@@ -333,7 +474,7 @@ def research(root, ticker, market, refresh=False):
             try:
                 entry = json.loads(path.read_text(encoding='utf-8'))
                 stamp, result = entry['timestamp'], entry['result']
-                if (entry.get('cache_version') == VERSION and isinstance(stamp, (int, float)) and
+                if (entry.get('cache_version') == CACHE_VERSION and isinstance(stamp, (int, float)) and
                         0 <= now - stamp and result.get('ticker') == ticker and
                         result.get('market') == 'VN' and result.get('provider') == 'CafeF'):
                     previous = (stamp, result)
@@ -362,7 +503,7 @@ def research(root, ticker, market, refresh=False):
         if len(ATTEMPTS) > 512:
             ATTEMPTS.pop(next(iter(ATTEMPTS)), None)
         try:
-            financial_sources.atomic_json(path, {'cache_version': VERSION, 'timestamp': stamp, 'result': result})
+            financial_sources.atomic_json(path, {'cache_version': CACHE_VERSION, 'timestamp': stamp, 'result': result})
         except OSError:
             result['warnings'].append('CACHE_WRITE_FAILED')
         return {**result, 'cache_status': 'LIVE'}

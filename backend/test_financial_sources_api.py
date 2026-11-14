@@ -1,9 +1,30 @@
 import unittest
+import http.client
+from pathlib import Path
 from unittest.mock import patch
 import test_finance_api
 import server
 
 class SourceApiTests(test_finance_api.FinanceApiTests):
+ def test_public_report_archive_requires_session_and_never_accepts_arbitrary_url(self):
+  self.assertEqual(self.call('GET','/api/research/reports/FPT?market=VN',token='missing')[0],401)
+  with patch.object(server.financial_reports,'catalog',return_value={'version':1,'ticker':'FPT','market':'VN','reports':[]}) as read:
+   self.assertEqual(self.call('GET','/api/research/reports/FPT?market=VN&year=2025')[0],200)
+   read.assert_called_once_with(server.ROOT,'FPT','VN','2025',False)
+  self.assertEqual(self.call('GET','/api/research/reports/FPT?market=BAD')[0],422)
+  identity='a'*24
+  with patch.object(server.financial_reports,'download',side_effect=server.financial_reports.ReportError('REPORT_NOT_FOUND')):
+   self.assertEqual(self.call('GET','/api/research/reports/FPT/'+identity+'?market=VN')[0],422)
+ def test_download_returns_original_pdf_as_private_attachment(self):
+  path=Path(server.ROOT)/'test-original.pdf';path.write_bytes(b'%PDF-1.7\nOriginal filing')
+  identity='b'*24
+  with patch.object(server.financial_reports,'download',return_value=(path,{'year':2025,'id':identity})):
+   connection=http.client.HTTPConnection('127.0.0.1',self.http.server_port)
+   connection.request('GET','/api/research/reports/FPT/'+identity+'?market=VN',headers={'Cookie':'solvai_session=active'})
+   response=connection.getresponse()
+   self.assertEqual(response.status,200);self.assertEqual(response.getheader('Content-Type'),'application/pdf')
+   self.assertIn('attachment',response.getheader('Content-Disposition'))
+   self.assertEqual(response.read(),b'%PDF-1.7\nOriginal filing');connection.close()
  def test_source_configuration_permissions_and_contact_privacy(self):
   with patch.dict('os.environ',{'PASION_SEC_USER_AGENT':''}):
    self.assertEqual(self.call('GET','/api/research/financial-sources',token='missing')[0],401)
