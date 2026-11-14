@@ -1,6 +1,16 @@
 /* Preserve the original valuation-first dashboard and its three summary cards. */
 .investment-research .ir-company-stat{min-width:0;}
-.investment-research .ir-company-stat strong{font-size:clamp(12px,.92vw,17px);overflow-wrap:anywhere;}
+.investment-research .ir-company-stat strong{font-size:clamp(12px,.92vw,17px);overflow-wrap:anywhere;white-space:normal;}
+.investment-research .ir-quote{grid-template-columns:minmax(0,1fr);min-width:0;}
+.investment-research .ir-quote>span{white-space:normal;overflow-wrap:anywhere;font-size:10px;line-height:1.4;}
+.investment-research .ir-fair-value{flex-wrap:wrap;}
+.investment-research .ir-fair-value strong{width:100%;font-size:30px;line-height:1.1;}
+.investment-research .ir-fair-value b{margin-left:0;white-space:normal;}
+.investment-research .ir-recommendation-box{display:grid;align-content:start;justify-items:start;min-width:0;gap:7px;}
+.investment-research .ir-buy-label{float:none;}
+.investment-research .ir-recommendation-box dl{width:100%;margin-top:8px;}
+.investment-research .ir-chart-bar-current{fill:#2378ed;}
+.investment-research .ir-chart-bar-target{fill:#a8c3ed;}
 .investment-research .ir-quote strong{font-size:clamp(21px,1.65vw,28px);}
 .investment-research .ir-model-card dd{white-space:normal;overflow-wrap:anywhere;max-width:65%;}
 .investment-research .ir-model-card{display:flex;flex-direction:column;}
@@ -8,7 +18,7 @@
 .ir-calculate-button{margin-top:auto;align-self:flex-start;}
 .investment-research .ir-model-card dl{margin-bottom:15px;}
 .ir-financial-expand{width:100%;margin-top:13px;}
-.investment-research .ir-financial-table{min-width:0;table-layout:fixed;font-size:11px;}
+.investment-research .ir-financial-table{min-width:0;table-layout:fixed;font-size:12px;}
 .investment-research .ir-financial-table th,.investment-research .ir-financial-table td{white-space:normal;overflow-wrap:anywhere;padding:8px 5px;}
 .investment-research .ir-financial-table th:first-child{width:29%;}
 .investment-research .ir-financial-table td.ir-financial-value{min-width:0;width:31%;}

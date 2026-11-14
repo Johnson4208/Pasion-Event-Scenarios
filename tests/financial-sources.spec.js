@@ -183,4 +183,7 @@ test('original PDF report downloads are scoped to the selected company',async({p
  const dialog=page.getByRole('dialog');await expect(dialog).toContainText('Saved on this server');
  const download=page.waitForEvent('download');await dialog.getByRole('link',{name:'Download PDF',exact:true}).click();
  expect((await download).suggestedFilename()).toBe('FPT-2025.pdf');
+ await page.route('**/api/research/reports/FPT/'+id+'?*',r=>r.fulfill({status:503,json:{reason_code:'REPORT_DOWNLOAD_UNAVAILABLE'}}));
+ await dialog.getByRole('link',{name:'Download PDF',exact:true}).click();
+ await expect(dialog.getByRole('alert')).toContainText('original PDF could not be downloaded');
 });
