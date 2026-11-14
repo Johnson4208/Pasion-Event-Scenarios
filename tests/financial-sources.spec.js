@@ -194,6 +194,8 @@ test('original PDF report downloads are scoped to the selected company',async({p
   await expect(grid.locator('.stock-metric-row').filter({has:page.getByText('Net revenue',{exact:true})})).toContainText('70.11T VND');
   await expect(grid).toContainText('FY 2025');
   await expect(grid).not.toContainText('13.79T');
+  await expect(grid.locator('.stock-metric-row').filter({has:page.getByText('Gross revenue',{exact:true})})).toContainText('70.21T VND');
+  await expect(grid.locator('.stock-metric-row').filter({has:page.getByText('SG&A',{exact:true})})).toContainText('14.9T VND');
   await expect(page.locator('.financial-sources')).toContainText('Financials loaded automatically');
   await grid.screenshot({path:'artifacts/automatic-financials-stock.png'});
  });
@@ -203,3 +205,13 @@ test('original PDF report downloads are scoped to the selected company',async({p
   await expect(page.locator('.financial-sources')).toContainText('temporarily unavailable');
   await expect(page.locator('.stock-indicator-grid')).not.toContainText('70.11T');
  });
+
+test('Stock Analytics displays primary-report supplements with provenance',async({page})=>{
+ const enriched=JSON.parse(execFileSync('python',['-c',`import sys,json;sys.path.insert(0,'backend');import report_supplements;print(json.dumps(report_supplements.enrich(json.loads(sys.stdin.read()))))`],{input:JSON.stringify(realFpt),encoding:'utf8'}));
+ await page.route('**/api/research/financials/FPT?*',r=>r.fulfill({json:enriched}));
+ await page.goto('/#stock-analytics');
+ const row=page.locator('.stock-metric-row').filter({has:page.getByText('Free cash flow',{exact:true})});
+ await expect(row).toContainText('5.04T VND');
+ await expect(row.getByRole('link')).toHaveAttribute('href',/page=171/);
+ await expect(page.locator('.stock-indicator-grid')).toContainText('Shares outstanding (FY end)');
+});

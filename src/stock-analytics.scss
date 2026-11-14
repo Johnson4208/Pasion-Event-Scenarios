@@ -823,3 +823,6 @@
 @media (prefers-reduced-motion: reduce) {
   .stock-analytics * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+
+.stock-missing-reason{display:block;font-size:10px;line-height:1.4;margin-top:3px;color:var(--pref-muted,#7489a0);}

@@ -5,6 +5,8 @@ on:
     paths:
       - 'backend/financial_sources.py'
       - 'backend/public_financials.py'
+      - 'backend/report_supplements.py'
+      - 'backend/test_financial_supplements.py'
       - 'backend/test_public_financials.py'
       - 'backend/fixtures/public_financials/**'
       - 'backend/sec_filings.py'
@@ -33,6 +35,8 @@ on:
     paths:
       - 'backend/financial_sources.py'
       - 'backend/public_financials.py'
+      - 'backend/report_supplements.py'
+      - 'backend/test_financial_supplements.py'
       - 'backend/test_public_financials.py'
       - 'backend/sec_filings.py'
       - 'src/FinancialSources.jsx'

@@ -47,7 +47,7 @@ function StockMetricCard({id,group,extra,query,category='all',t}){
  if(!groupRows.length&&!extraRows.length)return null;
  const renderRows=rows=>rows.map(row=><div className="stock-metric-row" id={row.label==='Price'?'stock-metrics-price':undefined} key={row.label} title={row.note||row.evidence}>
   <span>{t(row.label)}</span><strong dir="ltr">{row.value}</strong>
-  <small className={'stock-evidence evidence-'+row.evidence.toLowerCase().replaceAll(' ','-')}>{t(row.evidence)}</small>
+  <small className={'stock-evidence evidence-'+row.evidence.toLowerCase().replaceAll(' ','-')}>{row.result?.source_url?<a href={row.result.source_url} target="_blank" rel="noopener noreferrer">{t(row.evidence)} ↗</a>:t(row.evidence)}{row.evidence==='Unavailable'&&<span className="stock-missing-reason">{row.note}</span>}</small>
  </div>);
  return <section className="stock-metric-card" id={id}>
   {groupRows.length>0&&<header><span className="stock-metric-icon" aria-hidden="true">{group.name==='Income statement & growth'?'01':group.name==='Capital & efficiency'?'02':group.name==='Cash flow & reinvestment'?'03':group.name==='Valuation & market'?'04':'05'}</span><h3>{t(group.name)}</h3></header>}

@@ -52,3 +52,11 @@ The provider endpoints are public website feeds, not a contracted data service. 
 - Regression fixtures under `backend/fixtures/public_financials/` are used only by tests.
 - Backend tests cover values/units, partial inputs, zero handling, bank templates, cross-issuer/period rejection, cache persistence and outages, authentication and SEC configuration.
 - UI tests cover company selection, global search, per-metric reviewed priority, stale/error states, late responses, admin setup and a Vietnamese phone layout.
+
+## Additional statement coverage (2026-11-14)
+
+Stock Analytics now maps gross revenue, deductions, NCI profit, SG&A, liabilities plus equity, receivables/revenue, tangible fixed assets and the cash-flow depreciation/amortization adjustment. The latter is explicitly labeled as a cash-flow adjustment and is not used as an EBITDA expense shortcut.
+
+`backend/report_supplements.py` contains dated primary-report transcriptions for FPT FY2025. The audited annual report's PDF pages 171–172 reconcile capex with all seven investing cash-flow lines; page 204 supplies year-end ordinary shares. Supplements apply only after ticker, market, year, currency and three statement anchors match. FCF and its ratios use those annual inputs; book value/share uses year-end owners' equity and year-end shares, never current market shares. Each resulting metric links to its source PDF page. This is curated historical coverage, not a generic PDF parser or a reviewed valuation. A new reporting year requires a new validated extraction.
+
+Unsupported forward earnings, beta, trading volume and dividend dates show the missing input. Parsed-table and mapped-indicator counts measure data availability, not financial health or report quality. The cache schema is incremented so old incomplete cached snapshots are re-fetched after restarting the backend.

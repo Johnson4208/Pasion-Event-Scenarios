@@ -1,3 +1,4 @@
+import report_supplements
 """On-demand public financial snapshots. Never writes accepted facts or valuations.
 
 CafeF endpoints are the JSON feeds used by its public financial statement page.
@@ -21,7 +22,7 @@ import financial_sources
 import sec_filings
 
 VERSION = 1
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 TTL = 6 * 3600
 CACHE = {}
 ATTEMPTS = {}
@@ -357,6 +358,15 @@ def normalize(ticker, summary, balance=None, cash=None, income_detail=None):
     put('ebit', [pretax, interest], lambda v: v[0] + v[1], formula='Pretax income + interest expense')
     put('interest_coverage', [pretax, interest], lambda v: ratio(v[0] + v[1], v[1]), 'x',
         '(Pretax income + interest expense) / interest expense')
+    put('gross_revenue', [select(income_full, '1', 'Doanh thu bán hàng')])
+    put('revenue_deductions', [select(income_full, '2', 'Các khoản giảm trừ doanh thu')])
+    put('nci_profit', [select(income_full, '62', 'Lợi ích của cổ đông thiểu số')])
+    put('sga', [select(inc, 'KQKD_7', 'Chi phí bán hàng'), select(inc, 'KQKD_8', 'Chi phí quản lý doanh nghiệp')], lambda v: sum(v), formula='Selling + administrative expenses')
+    put('liabilities_equity', [liabilities, equity], lambda v: sum(v), formula='Total liabilities + total equity')
+    put('receivables_revenue', [receivables, rev], lambda v: ratio(*v)*100, '%', 'Closing short-term receivables / annual revenue × 100')
+    tangible=select(detail.get('TN', {}).get(current, {}), '221', 'Tài sản cố định hữu hình')
+    put('ppe', [tangible])
+    put('depreciation_cf', [select(operating, 'HDKD_4', 'Khấu hao')])
     if bank:
         for key in ('revenue', 'revenue_growth', 'net_margin', 'ebitda_margin', 'current_ratio', 'debt_equity', 'free_cash_flow'):
             metrics[key].update(status='UNAVAILABLE', value=None, reason_codes=['BANK_METRIC_NOT_APPLICABLE'])
@@ -435,7 +445,7 @@ def build_vietnam(ticker):
     elif identity.get('Symbol'):
         raise Unavailable('PROVIDER_ENTITY_MISMATCH')
     result['warnings'] = warnings
-    return result
+    return report_supplements.enrich(result)
 
 
 def research(root, ticker, market, refresh=False):
