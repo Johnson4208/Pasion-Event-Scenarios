@@ -13,6 +13,9 @@ import './trade-planner.scss';
 import {useCompanyCalculations,bindCompanyIndicators,metricText} from './researchApi';
 
 import StockForecast from './StockForecast';
+import FinancialSources from './FinancialSources';
+import {bindStockFinancials} from './stockFinancials';
+import {chooseMetric} from './automaticFinancials';
 
 import useTradeFeasibility from './useTradeFeasibility';
 
@@ -42,7 +45,7 @@ function StockMetricCard({id,group,extra,query,category='all',t}){
  const groupRows=(category==='all'||category===group.name)?group.rows.filter(matches):[];
  const extraRows=extra&&(category==='all'||category===extra.name)?extra.rows.filter(matches):[];
  if(!groupRows.length&&!extraRows.length)return null;
- const renderRows=rows=>rows.map(row=><div className="stock-metric-row" id={row.label==='Price'?'stock-metrics-price':undefined} key={row.label} title={row.evidence}>
+ const renderRows=rows=>rows.map(row=><div className="stock-metric-row" id={row.label==='Price'?'stock-metrics-price':undefined} key={row.label} title={row.note||row.evidence}>
   <span>{t(row.label)}</span><strong dir="ltr">{row.value}</strong>
   <small className={'stock-evidence evidence-'+row.evidence.toLowerCase().replaceAll(' ','-')}>{t(row.evidence)}</small>
  </div>);
@@ -55,9 +58,20 @@ function StockMetricCard({id,group,extra,query,category='all',t}){
 
 function readStockFavorite(storageKey){try{return localStorage.getItem(storageKey+'-favorite-FPT')==='true'}catch{return false}}
 export function StockAnalytics({storageKey}){
- const {t}=usePreferences();
+ const {t,language}=usePreferences();
  const calculated=useCompanyCalculations('FPT');
- const boundIndicators=bindCompanyIndicators(companyOverviewIndicators,calculated);
+ const [snapshot,setSnapshot]=useState(null),[sourceError,setSourceError]=useState(''),[sourceLoading,setSourceLoading]=useState(true),[sourceRefresh,setSourceRefresh]=useState(0);
+ useEffect(()=>{
+  let active=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
+  setSourceLoading(true);setSourceError('');setSnapshot(null);
+  fetch('/api/research/financials/FPT?market=VN'+(sourceRefresh?'&refresh=1':''),{signal:controller.signal})
+   .then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.reason_code||'HTTP_'+r.status);if(d.version!==1||d.ticker!=='FPT'||d.market!=='VN')throw Error('PROVIDER_ENTITY_MISMATCH');return d;})
+   .then(d=>{if(active){setSnapshot(d);setSourceError(d.refresh_error||'');}})
+   .catch(e=>{if(active)setSourceError(e.name==='AbortError'?'Request timed out':e.message);})
+   .finally(()=>{clearTimeout(timer);if(active)setSourceLoading(false);});
+  return()=>{active=false;clearTimeout(timer);controller.abort();};
+ },[sourceRefresh]);
+ const boundIndicators=bindStockFinancials(companyOverviewIndicators,calculated,snapshot,language);
  const [financialMode,setFinancialMode]=useState('reviewed');
  const [activeTab,setActiveTab]=useState('Financials');
  const [activeHorizon,setActiveHorizon]=useState('1 month');
@@ -111,10 +125,10 @@ export function StockAnalytics({storageKey}){
     <div className="stock-company-identity"><span className="stock-company-mark">FPT</span><div><h3>FPT Corporation</h3><div className="stock-company-tags"><span>FPT</span><span>VN</span><button type="button" aria-pressed={fptFavorite} aria-label={t(fptFavorite?'Remove FPT from favorites':'Add FPT to favorites')} onClick={()=>setFptFavorite(value=>{const next=!value;try{localStorage.setItem(storageKey+'-favorite-FPT',String(next))}catch{}return next})}>{fptFavorite?'★':'☆'}</button></div><p>Information Technology <i/> Vietnam</p></div></div>
     <div className="stock-company-last-price"><div><strong dir="ltr">62,100</strong><span>VND</span></div><p><b>↑ 1,200 (+1.97%)</b><span>{t('Illustrative sample · not a current quote')}</span></p><small>{t('CLOSED')}</small></div>
     <div className="stock-company-sparkline"><PriceChart compact company={fptChart} period={quotePeriod}/><div className="stock-spark-periods" role="group" aria-label={t('Chart period')}>{['1D','1W','1M','1Y'].map(period=><button type="button" key={period} aria-pressed={quotePeriod===period} onClick={()=>setQuotePeriod(period)}>{period}</button>)}</div></div>
-    <div className="stock-company-stat"><span>{t('Market Cap')}</span><strong>{metricText(calculated?.metrics?.market_cap)}</strong></div>
-    <div className="stock-company-stat"><span>{t('P/E (trailing)')}</span><strong>{metricText(calculated?.metrics?.pe)}</strong></div>
-    <div className="stock-company-stat"><span>{t('P/B')}</span><strong>{metricText(calculated?.metrics?.pb)}</strong></div>
-    <div className="stock-company-stat"><span>{t('Dividend Yield')}</span><strong>{metricText(calculated?.metrics?.dividend_yield)}</strong></div>
+    <div className="stock-company-stat"><span>{t('Market Cap')}</span><strong>{metricText(chooseMetric('market_cap',calculated,snapshot))}</strong></div>
+    <div className="stock-company-stat"><span>{t('P/E (trailing)')}</span><strong>{metricText(chooseMetric('pe',calculated,snapshot))}</strong></div>
+    <div className="stock-company-stat"><span>{t('P/B')}</span><strong>{metricText(chooseMetric('pb',calculated,snapshot))}</strong></div>
+    <div className="stock-company-stat"><span>{t('Dividend Yield')}</span><strong>{metricText(chooseMetric('dividend_yield',calculated,snapshot))}</strong></div>
    </div>
    <nav className="stock-analytics-tabs" aria-label={t('Company analytics sections')}>
     {navTabs.map(tab=><button type="button" key={tab.label} aria-pressed={activeTab===tab.label} className={activeTab===tab.label?'is-active':''} onClick={()=>jumpTo(tab)}>{t(tab.label)}</button>)}
@@ -123,8 +137,9 @@ export function StockAnalytics({storageKey}){
 
   <StockForecast ticker="FPT"/>
 
+  <FinancialSources market="VN" snapshot={snapshot} loading={sourceLoading} error={sourceError} onRefresh={()=>setSourceRefresh(v=>v+1)}/>
   <section className="stock-overview-panel">
-   <header className="stock-overview-heading"><div><h2>{t('Company overview')} <span>·</span> {t('Key indices')}</h2><p>{t('Supplied FPT snapshot · VND values and evidence labels')}</p></div><button type="button" className="stock-export-button" disabled={!visibleMetricCount} onClick={exportVisibleMetrics}>{t('Export visible metrics')}</button></header>
+   <header className="stock-overview-heading"><div><h2>{t('Company overview')} <span>·</span> {t('Key indices')}</h2><p>{language==='vi'?'FPT · Số liệu tự tải; kỳ báo cáo và nguồn ghi theo từng chỉ tiêu':'FPT · Automatic financial data; period and source shown per indicator'}</p></div><button type="button" className="stock-export-button" disabled={!visibleMetricCount} onClick={exportVisibleMetrics}>{t('Export visible metrics')}</button></header>
    <div className="stock-metric-toolbar"><label className="stock-metric-search"><span>{t('Search indicators')}</span><input type="search" value={metricQuery} onChange={event=>setMetricQuery(event.target.value)} placeholder={t('Try “revenue”, “debt”, or “yield”')} /></label><label className="stock-category-select"><span>{t('Category')}</span><select value={metricCategory} onChange={event=>setMetricCategory(event.target.value)}><option value="all">{t('All categories')}</option>{boundIndicators.map(group=><option value={group.name} key={group.name}>{t(group.name)}</option>)}</select></label><p aria-live="polite">{t('Showing {visible} of {total} indicators',{visible:visibleMetricCount,total:totalMetricCount})}</p></div>
    <div className="stock-indicator-grid">{visibleGroups.map(item=><StockMetricCard key={item.id} {...item} query={metricQuery} category={metricCategory} t={t}/>)}</div>
    {!visibleMetricCount&&<p className="stock-metric-empty">{t('No indicators match your search. Try a different term or category.')}</p>}
@@ -370,3 +385,4 @@ export default function AnalyticsPages({page,query,selected,watched,storageKey,o
  if(page==='Sources')return <DataSources query={query}/>;
  return null;
 }
+

@@ -187,3 +187,19 @@ test('original PDF report downloads are scoped to the selected company',async({p
  await dialog.getByRole('link',{name:'Download PDF',exact:true}).click();
  await expect(dialog.getByRole('alert')).toContainText('original PDF could not be downloaded');
 });
+
+ test('Stock Analytics fills its actual indicator grid from public financials',async({page})=>{
+  await page.goto('/#stock-analytics');
+  const grid=page.locator('.stock-indicator-grid');
+  await expect(grid.locator('.stock-metric-row').filter({has:page.getByText('Net revenue',{exact:true})})).toContainText('70.11T VND');
+  await expect(grid).toContainText('FY 2025');
+  await expect(grid).not.toContainText('13.79T');
+  await expect(page.locator('.financial-sources')).toContainText('Financials loaded automatically');
+  await grid.screenshot({path:'artifacts/automatic-financials-stock.png'});
+ });
+ test('Stock Analytics reports provider failure rather than silently leaving blanks',async({page})=>{
+  await page.route('**/api/research/financials/FPT?*',r=>r.fulfill({status:503,json:{reason_code:'PROVIDER_UNAVAILABLE'}}));
+  await page.goto('/#stock-analytics');
+  await expect(page.locator('.financial-sources')).toContainText('temporarily unavailable');
+  await expect(page.locator('.stock-indicator-grid')).not.toContainText('70.11T');
+ });
