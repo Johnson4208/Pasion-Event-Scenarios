@@ -1,0 +1,61 @@
+.distribution-lab {
+  --lab-blue: #2776bd;
+  --lab-wait: #dc9841;
+  display: grid; gap: 16px; color: var(--pref-text, #153752);
+  h1, h2, h3, p { margin: 0; }
+  h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -.04em; }
+  h2 { font-size: 21px; } h3 { font-size: 17px; }
+  p, .dl-axis, .dl-legend { font-size: 13px; line-height: 1.55; color: var(--pref-muted, #526b7d); }
+  p { margin-top: 5px; }
+  button, input { font: inherit; }
+  button, input, .dl-card, .dl-kpis > div {
+    background: var(--pref-surface, white); color: inherit; border: 1px solid var(--pref-border, #d5e1e9); border-radius: 8px;
+  }
+  button { padding: 8px 13px; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 36px; }
+  button[aria-pressed=true], button:hover { border-color: var(--lab-blue); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.dl-primary { background: #195e9e; color: white; border-color: #195e9e; }
+  :is(button,summary,input):focus-visible { outline: 2px solid var(--lab-blue); outline-offset: 2px; }
+  .dl-head,.dl-clock-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .dl-card,.dl-kpis > div { padding: 18px 20px; border-radius: 12px; min-width: 0; }
+  fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
+  label { display: grid; gap: 6px; font-size: 13px; font-weight: 550; }
+  input { min-width: 0; width: 100%; padding: 8px 10px; min-height: 38px; }
+  .dl-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,190px),1fr)); gap: 12px; margin: 12px 0; }
+  .dl-form, .dl-inline { margin-top: 14px; }
+  .dl-buttons,.dl-inline,.dl-duration { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; }
+  .dl-buttons { align-items:center; }
+  details { margin: 10px 0; }
+  summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 5px 0; }
+  .dl-state { font-size: 12px; font-weight: 600; color: var(--pref-muted); }
+  .dl-state.running { color: #14856e; }
+  .dl-clock h2 { margin-top: 5px; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .dl-clock h2 small { font-weight: 400; font-size: 18px; }
+  progress { width: 100%; height: 7px; margin-top: 14px; accent-color: var(--lab-blue); }
+  .dl-kpis { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(130px,100%),1fr)); gap: 10px; }
+  .dl-kpis > div { display: grid; gap: 6px; padding: 15px; }
+  .dl-kpis span { font-size: 13px; color: var(--pref-muted); }
+  .dl-kpis strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+  .dl-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; min-width: 0; }
+  .dl-legend,.dl-axis,.dl-reasons { display:flex; flex-wrap:wrap; align-items:center; gap: 12px; margin-top: 12px; }
+  .dl-legend span::before { content:''; display:inline-block; width:8px; height:8px; border-radius:2px; background:var(--lab-blue); margin-right:5px; }
+  .dl-legend span+span::before { background:var(--lab-wait); }
+  .dl-chart { height:134px; display:flex; gap:2px; align-items:stretch; margin-top:12px; border-bottom:1px solid var(--pref-border); }
+  .dl-chart > div { flex:1; max-width:28px; display:flex; flex-direction:column; justify-content:end; }
+  .dl-chart i,.dl-bars i { display:block; background:var(--lab-blue); }
+  .dl-chart i:first-child { background:var(--lab-wait); }
+  .dl-axis { justify-content:space-between; font-size:11px; }
+  .dl-empty { padding:35px 0; }
+  .dl-bars { display:grid; gap:10px; margin-top:18px; }
+  .dl-bars > div { display:grid; grid-template-columns: 70px 1fr 60px; gap:8px; align-items:center; font-variant-numeric:tabular-nums; font-size:12px; }
+  .dl-bars b { text-align:right; }
+  .dl-bars > div > div { height:7px; border-radius:2px; background:var(--pref-soft,#edf3f8); }
+  .dl-bars i { height:100%; border-radius:2px; }
+  .dl-reasons > span { font-size:13px; }
+  .dl-scroll { overflow:auto; max-height:330px; margin-top:12px; }
+  table { border-collapse:collapse; width:100%; text-align:left; font-size:13px; }
+  td,th { padding:8px; border-bottom:1px solid var(--pref-border); white-space:nowrap; }
+  th { position:sticky; top:0; background:var(--pref-surface,white); }
+  .dl-error { padding:12px; border:1px solid #ce7b71; border-radius:8px; }
+  @media(max-width:720px) { .dl-grid {grid-template-columns:1fr;} .dl-card {padding:15px;} }
+}

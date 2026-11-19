@@ -6,6 +6,10 @@ on:
     paths:
       - 'backend/distribution/recommendations.py'
       - 'backend/test_recommendation_distribution.py'
+      - 'backend/distribution/lab.py'
+      - 'backend/test_distribution_lab.py'
+      - 'src/DistributionLab.jsx'
+      - 'src/distribution-lab.scss'
       - 'testing/**'
       - 'scripts/test_lab.py'
       - '.github/workflows/test-lab.yml'
@@ -26,6 +30,22 @@ jobs:
         with:
           name: distribution-synthetic-results
           path: artifacts/distribution-lab.json
+  admin-lab-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m unittest discover -s backend -p test_distribution_lab.py
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node testing/admin_lab_ui.mjs
   full-project:
     runs-on: ubuntu-latest
     timeout-minutes: 45

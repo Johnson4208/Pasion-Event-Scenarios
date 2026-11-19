@@ -45,6 +45,7 @@ import finance_ingestion
 import watch_events
 import analytic_assistant
 import distribution_shadow
+from distribution import lab as distribution_lab
 import admin_distribution_analytics
 import operational_health
 from documents import DocumentError, MAX_FILE_SIZE, search_document
@@ -191,6 +192,38 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(200,{'version':1,'status':'RETROSPECTIVE_SCENARIO','ticker':ticker,'paths':paths,'summary':outcomes.summarize(paths),'source_as_of':snapshot['as_of'],'source_ids':[snapshot.get('snapshot_id') or snapshot.get('snapshot_hash') or snapshot['as_of']],'execution_policy':'NO_ORDER_OR_VALIDATED_EDGE'})
         except (ValueError,KeyError,TypeError,AttributeError,ArithmeticError,DocumentError):self.respond(400,{'message':'Invalid completed-path scenario or explicit cost assumptions.'})
         except (sqlite3.Error,OSError):self.respond(503,{'message':'Historical path research unavailable.'})
+
+    def distribution_lab_api(self):
+        # Both dispatchers invoke policy_guard before reaching this admin route.
+        local_hosts = {'127.0.0.1', 'localhost', '::1'}
+        try:
+            host = urlparse('//' + self.headers.get('Host', '')).hostname
+            origin = self.headers.get('Origin')
+            local_origin = origin is None or urlparse(origin).hostname in local_hosts
+        except ValueError:
+            host, local_origin = None, False
+        if (PRODUCTION or host not in local_hosts or self.client_address[0] not in local_hosts
+                or not local_origin or self.headers.get('Sec-Fetch-Site') == 'cross-site'):
+            self.respond(403, {'message': 'Distribution Lab chỉ mở trên localhost ở chế độ phát triển.'})
+            return
+        try:
+            if self.command == 'GET':
+                result = distribution_lab.lab.state()
+            else:
+                if self.headers.get_content_type() != 'application/json':
+                    self.respond(415, {'message': 'Yêu cầu dữ liệu JSON.'})
+                    return
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 4096:
+                    raise ValueError('Kích thước lệnh không hợp lệ.')
+                result = distribution_lab.lab.command(json.loads(self.read_document_body(size)))
+            self.respond(200, result)
+        except distribution_lab.Conflict as error:
+            self.respond(409, {'message': str(error)})
+        except (ValueError, DocumentError) as error:
+            self.respond(400, {'message': str(error)})
+        except (sqlite3.Error, OSError):
+            self.respond(503, {'message': 'Không thể mở dữ liệu mô phỏng.'})
 
     def distribution_api(self):
         if not self.require_admin():return
@@ -876,6 +909,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(200,result)
             except (sqlite3.Error,OSError):self.respond(503,{'message':'Health archive unavailable.'})
             return
+        if address == '/api/admin/distribution/lab':
+            self.distribution_lab_api()
+            return
         if address in ('/api/admin/distribution','/api/admin/distribution/monitor'):self.distribution_api();return
         if address == '/api/research/financial-sources':
             session = self.current_session()
@@ -1076,6 +1112,9 @@ class Handler(BaseHTTPRequestHandler):
             self.event_forecast_api();return
         if urlparse(self.path).path=='/api/trades/outcomes':
             self.trade_outcomes_api();return
+        if urlparse(self.path).path == '/api/admin/distribution/lab':
+            self.distribution_lab_api()
+            return
         if urlparse(self.path).path in ('/api/admin/distribution/pools','/api/admin/distribution/candidates','/api/admin/distribution/transitions','/api/admin/distribution/shadow'):
             self.distribution_api();return
         if urlparse(self.path).path=='/api/research/assistant':self.assistant_api();return

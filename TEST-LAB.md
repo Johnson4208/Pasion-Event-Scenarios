@@ -1,5 +1,21 @@
 # PASION test lab / Môi trường kiểm thử
 
+## Trang Distribution Lab dành cho admin
+
+1. Cập nhật nhánh `master`, mở `RUN-PASION.cmd` hoặc chạy `npm run dev` để khởi động cả frontend và backend.
+2. Đăng nhập bằng tài khoản admin. Mở **Administration → Distribution Lab** tại [trang quản trị local](http://127.0.0.1:5173/#admin).
+3. Chọn 365 ngày, 730 ngày, ngẫu nhiên hoặc nhập số ngày trong khoảng 1–730. Chọn ngày bắt đầu, số khách và seed. Bấm **Tạo lượt mô phỏng**, sau đó **Chạy mô phỏng** hoặc **Tiến 1 ngày**.
+4. Trong lúc chạy, bấm **Thêm khách** hoặc **Chỉnh giới hạn và tốc độ → Áp dụng thông số**. Thay đổi có hiệu lực ở đầu ngày kế tiếp. Nhật ký điều chỉnh ghi ngày và các giá trị đã áp dụng.
+5. Dùng **Tạm dừng** để xem kỹ biểu đồ và các quyết định gần nhất. Nút **Xuất kết quả JSON** tải cấu hình, lịch sử điều chỉnh, tổng hợp theo ngày, số lần chọn từng mã và 20 quyết định mới nhất.
+
+Backend dùng đồng hồ mô phỏng theo ngày lịch UTC. Mỗi ngày nó lấy ngẫu nhiên số yêu cầu từ nửa mức tối đa (làm tròn xuống, ít nhất một) đến mức tối đa, rồi chọn thời điểm, khách và điểm cho các ứng viên. Khi thêm khách, các khách mới tham gia cùng nhóm được chọn ngẫu nhiên. Có thể chỉnh riêng lượng yêu cầu/ngày để thay đổi tải. Cùng seed, cùng cấu hình và cùng ngày điều chỉnh sẽ tạo lại cùng chuỗi quyết định, kể cả khi đổi tốc độ. Tốc độ đặt là mục tiêu, còn tốc độ đạt được tùy máy.
+
+Mỗi yêu cầu đi qua cùng hàm tính Distribution dùng trong bài thử đồng thời. KPI **Trong đó đổi mã** đếm các lượt đã gợi ý một mã khác với lựa chọn phù hợp có điểm cao nhất ban đầu. **Giữ lại** đếm yêu cầu hết ứng viên đủ điều kiện. Biểu đồ phân phối mã cộng dồn từ đầu lượt, còn hạn mức áp dụng theo cửa sổ trượt. Toàn bộ quyết định trong một ngày được ghi cùng giao dịch SQLite.
+
+Mọi admin trên cùng backend dùng chung một lượt. Đóng tab hoặc tải lại trang vẫn giữ tiến trình khi backend còn chạy. Khi thay lượt hoặc dừng backend, kết quả trong lab hết hiệu lực. Hãy xuất JSON nếu cần lưu. Backend dùng SQLite tạm riêng cho các mã và khách giả lập. Đăng nhập và nhật ký truy cập vẫn dùng cơ chế quản trị của PASION. API chỉ chấp nhận admin qua localhost ở chế độ phát triển và tắt khi `PASION_ENV=production`.
+
+Để kiểm tra lại, chạy `python -m unittest discover -s backend -p test_distribution_lab.py`. Sau `npm ci` và `npx playwright install chromium`, chạy `node testing/admin_lab_ui.mjs` để kiểm tra luồng trình duyệt một và hai năm trên hai cổng tạm. Job **admin-lab-ui** trên GitHub Actions cũng chạy các bước này.
+
 ## Chạy phân bổ với khách hàng giả lập
 
 Không cần tài khoản hoặc khách hàng thật:
