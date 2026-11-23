@@ -3,12 +3,20 @@
 ## Trang Distribution Lab dành cho admin
 
 1. Cập nhật nhánh `master`, mở `RUN-PASION.cmd` hoặc chạy `npm run dev` để khởi động cả frontend và backend.
-2. Đăng nhập bằng tài khoản admin. Mở **Administration → Distribution Lab** tại [trang quản trị local](http://127.0.0.1:5173/#admin).
+2. Đăng nhập bằng tài khoản admin. Mở **Administration → Trading & Distribution Monitor → Distribution Lab** tại [trang quản trị local](http://127.0.0.1:5173/#admin).
 3. Chọn 365 ngày, 730 ngày, ngẫu nhiên hoặc nhập số ngày trong khoảng 1–730. Chọn ngày bắt đầu, số khách và seed. Bấm **Tạo lượt mô phỏng**, sau đó **Chạy mô phỏng** hoặc **Tiến 1 ngày**.
 4. Trong lúc chạy, bấm **Thêm khách** hoặc **Chỉnh giới hạn và tốc độ → Áp dụng thông số**. Thay đổi có hiệu lực ở đầu ngày kế tiếp. Nhật ký điều chỉnh ghi ngày và các giá trị đã áp dụng.
 5. Dùng **Tạm dừng** để xem kỹ biểu đồ và các quyết định gần nhất. Nút **Xuất kết quả JSON** tải cấu hình, lịch sử điều chỉnh, tổng hợp theo ngày, số lần chọn từng mã và 20 quyết định mới nhất.
 
-Backend dùng đồng hồ mô phỏng theo ngày lịch UTC. Mỗi ngày nó lấy ngẫu nhiên số yêu cầu từ nửa mức tối đa (làm tròn xuống, ít nhất một) đến mức tối đa, rồi chọn thời điểm, khách và điểm cho các ứng viên. Khi thêm khách, các khách mới tham gia cùng nhóm được chọn ngẫu nhiên. Có thể chỉnh riêng lượng yêu cầu/ngày để thay đổi tải. Cùng seed, cùng cấu hình và cùng ngày điều chỉnh sẽ tạo lại cùng chuỗi quyết định, kể cả khi đổi tốc độ. Tốc độ đặt là mục tiêu, còn tốc độ đạt được tùy máy.
+**HOSE · phát lại 2024–2025** là chế độ mặc định. Mỗi mã FPT, HPG, MWG, PNJ và VCB có 748 phiên OHLCV từ 03/01/2023 đến 31/12/2025. Các CSV trong `backend/distribution/replay_data` lưu giá theo VND/cổ phiếu (giá biểu đồ × 1.000) và khối lượng theo cổ phiếu. Chuỗi năm 2023 khởi tạo chỉ báo. Bộ dữ liệu là ảnh chụp lịch sử biểu đồ của nhà cung cấp, có thể bao gồm điều chỉnh hồi tố. Lab phát lại được khi máy ngoại tuyến. [Nguồn DNSE / Entrade, ví dụ FPT](https://services.entrade.com.vn/chart-api/v2/ohlcs/stock?symbol=FPT&resolution=1D&from=1672531200&to=1767225599)
+
+Trước giờ mở cửa của từng phiên, lab dùng dữ liệu đến hết phiên trước để tính RSI14, SMA20, ATR14, RVOL20 và sự kiện VSA qua module Indicators & VSA. Hàm tạo đặc trưng của Stock Analytics cung cấp động lượng 5 phiên, độ lệch so với SMA20 và độ biến động. Ba hồ sơ khách (thận trọng, cân bằng, động lượng) dùng ngưỡng biến động và trọng số riêng. Distribution xếp các ứng viên phù hợp theo điểm thí nghiệm rồi áp dụng giới hạn mã, ngành và thời gian tránh lặp.
+
+Khách ưu tiên giảm vị thế có giá đóng cửa dưới SMA20. Khi mua, mã đã qua Distribution phải có giá đóng cửa từ SMA20 trở lên. Trade Planner tính số lượng dựa trên tiền mặt, vị thế, mức rủi ro và khoảng dừng bằng hai lần ATR. Lệnh đủ điều kiện ghi vào sổ độc lập ở giá mở cửa của phiên tiếp theo. Mô hình giả định vốn mặc định 100 triệu VND/khách, lô 100 cổ phiếu, phí 0,1%, thanh toán tức thì, thuế và trượt giá bằng 0. Khả năng khớp thực tế, độ sâu sổ lệnh và chi trả cổ tức nằm ngoài mô hình. Dòng **giá trị giao dịch** cộng giá trị tuyệt đối mua và bán trước phí.
+
+Trên cùng màn hình có tổng lượt mua và bán, khối lượng từng mã, 10 khách có giá trị giao dịch cao nhất, 20 giao dịch mới nhất và tín hiệu của phiên trước. JSON xuất ra chứa các bảng này và tổng hợp từng ngày. Nút **Sổ tài khoản & Shadow** mở dữ liệu nhập tay và theo dõi shadow hiện có.
+
+Đồng hồ tiến theo ngày lịch. Ngày thiếu phiên giá có số yêu cầu và giao dịch bằng 0. Số yêu cầu trên mỗi phiên và khách gửi yêu cầu được lấy mẫu theo seed. Chọn **Kiểm thử hạn mức · mã SIM** để chạy kịch bản tổng hợp trên khoảng ngày tùy chọn. Khi thêm khách, những khách mới sẽ tham gia nhóm được lấy mẫu từ ngày kế tiếp. Cùng seed, cấu hình và ngày điều chỉnh sẽ tạo lại chuỗi quyết định.
 
 Mỗi yêu cầu đi qua cùng hàm tính Distribution dùng trong bài thử đồng thời. KPI **Trong đó đổi mã** đếm các lượt đã gợi ý một mã khác với lựa chọn phù hợp có điểm cao nhất ban đầu. **Giữ lại** đếm yêu cầu hết ứng viên đủ điều kiện. Biểu đồ phân phối mã cộng dồn từ đầu lượt, còn hạn mức áp dụng theo cửa sổ trượt. Toàn bộ quyết định trong một ngày được ghi cùng giao dịch SQLite.
 

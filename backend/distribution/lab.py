@@ -9,13 +9,13 @@ from collections import Counter, deque
 from datetime import date, timedelta
 from pathlib import Path
 
-from distribution import recommendations
+from distribution import recommendations, paper_market
 
 DAY = 86400
-DEFAULTS = dict(start_date='2025-01-01', days=365, seed=42, customers=100,
+DEFAULTS = dict(mode='historical', initial_cash=100000000, start_date='2024-01-01', days=365, seed=42, customers=100,
                 daily_requests=24, window_days=3, max_per_symbol=10, max_per_sector=18,
                 cooldown_days=7, utility_tolerance=2, speed=7)
-LIMITS = dict(days=(1, 730), seed=(0, 2147483647), customers=(1, 100000),
+LIMITS = dict(initial_cash=(1000000, 10000000000), days=(1, 730), seed=(0, 2147483647), customers=(1, 100000),
               daily_requests=(1, 100), window_days=(1, 30), max_per_symbol=(1, 10000),
               max_per_sector=(1, 10000), cooldown_days=(1, 365),
               utility_tolerance=(0, 10), speed=(1, 60))
@@ -43,6 +43,20 @@ def validate(config):
     except (ValueError, TypeError):
         raise ValueError('Chọn ngày bắt đầu từ năm 2000 đến 2099.') from None
 
+    if config['mode'] not in ('historical','benchmark'):
+        raise ValueError('Nguồn mô phỏng không hợp lệ.')
+    if config['mode'] == 'historical' and not (date(2024,1,1) <= start and
+            start + timedelta(days=config['days']-1) <= date(2025,12,31)):
+        raise ValueError('Chọn khoảng phát lại nằm trong 01/01/2024 – 31/12/2025.')
+
+
+def benchmark_candidates(customer, rng):
+    excluded = ('', '', 'Technology', 'Consumer', 'Health')[customer % 5]
+    return [dict(symbol=symbol, sector=sector, utility=base + rng.choice((-0.5, 0, 0.5)),
+                 suitable=sector != excluded, data_status='READY', horizon='30 sessions',
+                 utility_definition='synthetic score', utility_version='v1')
+            for symbol, sector, base in UNIVERSE]
+
 
 class Run:
     def __init__(self, config):
@@ -55,7 +69,10 @@ class Run:
         self.day = 0
         self.revision = self.policy_version = 1
         self.totals = Counter(requests=0, selected=0, redirected=0, withheld=0)
-        self.symbols = dict.fromkeys((symbol for symbol, _, _ in UNIVERSE), 0)
+        self.replay = config['mode'] == 'historical'
+        symbols = paper_market.SECTORS if self.replay else (row[0] for row in UNIVERSE)
+        self.symbols = dict.fromkeys(symbols, 0)
+        self.paper = None
         self.reasons = Counter()
         self.history = []
         self.events = deque(maxlen=20)
@@ -67,8 +84,13 @@ class Run:
         # Independent daily streams make wall-clock speed and pausing irrelevant.
         rng = random.Random(config['seed'] * 1000 + self.day)
         volume = rng.randint(max(1, config['daily_requests'] // 2), config['daily_requests'])
-        offsets = sorted(rng.sample(range(DAY), volume))
         day = self.start + timedelta(days=self.day)
+        stamp = day.isoformat()
+        signals, opens = paper_market.session(stamp) if self.replay else ({}, {})
+        if self.replay and not opens:
+            volume = 0
+        offsets = sorted(rng.sample(range(7200 if self.replay else DAY), volume))
+        profiles = [paper_market.candidates_for(signals, i) for i in range(3)] if self.replay else []
         midnight = (day - date(1970, 1, 1)).days * DAY
         policy = dict(version=f'lab-{self.policy_version}', window_seconds=config['window_days'] * DAY,
                       max_per_symbol=config['max_per_symbol'], max_per_sector=config['max_per_sector'],
@@ -76,19 +98,19 @@ class Run:
                       utility_tolerance=config['utility_tolerance'])
         counts = Counter(requests=volume, selected=0, redirected=0, withheld=0)
         symbols, reasons, events = Counter(), Counter(), []
+        paper = None
+        trading = Counter(buys=0, sells=0, notional=0, quantity=0)
+        pending = []
         with recommendations.decision_transaction(self.db) as db:
+            if self.replay:
+                paper_market.initialize(db)
             for i, offset in enumerate(offsets):
                 customer = rng.randrange(1, config['customers'] + 1)
-                # Some synthetic profiles exclude a sector, and utility varies by request.
-                excluded = ('', '', 'Technology', 'Consumer', 'Health')[customer % 5]
-                candidates = [
-                    dict(symbol=symbol, sector=sector, utility=base + rng.choice((-0.5, 0, 0.5)),
-                         suitable=sector != excluded, data_status='READY', horizon='30 sessions',
-                         utility_definition='synthetic score', utility_version='v1')
-                    for symbol, sector, base in UNIVERSE
-                ]
-                first = min((c for c in candidates if c['suitable']),
-                            key=lambda c: (-c['utility'], c['symbol']))['symbol']
+                profile = customer % 3
+                candidates = profiles[profile] if self.replay else benchmark_candidates(customer, rng)
+                preferred = min((c for c in candidates if c['suitable']),
+                                key=lambda c: (-c['utility'], c['symbol']), default=None)
+                first = preferred['symbol'] if preferred else None
                 result = recommendations.decide_in_transaction(
                     db, f'{self.day}/{i}', f'SIM-{customer}', candidates, policy, midnight + offset)
                 symbol = result['symbol']
@@ -101,6 +123,24 @@ class Run:
                 reasons.update({reason for blocked in result['blocked'].values() for reason in blocked})
                 events.append(dict(date=day.isoformat(), second=offset, customer=f'SIM-{customer}',
                                    preferred=first, symbol=symbol, reasons=result['blocked'].get(first, [])))
+                if self.replay:
+                    event = events[-1]
+                    event['request'] = f'{self.day}/{i}'
+                    event['profile'] = paper_market.PROFILES[profile]
+                    event['scores'] = {c['symbol']:c['utility'] for c in candidates if c['suitable']}
+                    pending.append((event, profile))
+            if self.replay:
+                for event, profile in pending:
+                    order = paper_market.trade(db, event['customer'], profile, event['request'], stamp,
+                                               signals, opens, event['symbol'], config['initial_cash'])
+                    event['order'] = order
+                    if order['status'] == 'PAPER_FILL':
+                        trading['buys' if order['side'] == 'BUY' else 'sells'] += 1
+                        trading['quantity'] += order['quantity']
+                        trading['notional'] += order['quantity'] * order['price']
+                last_signals = signals or (self.paper or {}).get('signals', {})
+                paper = paper_market.monitor(db, last_signals)
+        self.paper = paper
         self.day += 1
         self.totals.update(counts)
         for symbol, total in symbols.items():
@@ -108,7 +148,8 @@ class Run:
         self.reasons.update(reasons)
         self.events.extend(events)
         self.history.append(dict(day=self.day, date=day.isoformat(), customers=config['customers'],
-                                 policy_version=self.policy_version, **counts))
+                                 policy_version=self.policy_version, paper=dict(trading) if self.replay else None,
+                                 session_open=bool(opens) if self.replay else None, **counts))
         if self.day == config['days']:
             self.status = 'completed'
 
@@ -116,7 +157,7 @@ class Run:
         return copy.deepcopy(dict(id=self.id, revision=self.revision, config=self.config, day=self.day,
                                   status=self.status, totals=dict(self.totals), symbols=self.symbols,
                                   reasons=dict(self.reasons), history=self.history, events=list(reversed(self.events)),
-                                  changes=self.changes, error=self.error))
+                                  changes=self.changes, paper=self.paper, error=self.error))
 
 
 class Lab:

@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './distribution-lab.scss';
+import PaperTrading from './PaperTrading';
 
 const endpoint = '/api/admin/distribution/lab';
 const labels = {
@@ -7,17 +8,19 @@ const labels = {
   max_per_symbol: 'Giới hạn mỗi mã (lượt)', max_per_sector: 'Giới hạn mỗi ngành (lượt)',
   window_days: 'Cửa sổ giới hạn (ngày)', cooldown_days: 'Chờ trước khi lặp mã (ngày)',
   utility_tolerance: 'Chênh lệch điểm cho phép', speed: 'Tốc độ (ngày mô phỏng/giây)',
-  seed: 'Seed ngẫu nhiên',
+  seed: 'Seed ngẫu nhiên', initial_cash:'Vốn ban đầu mỗi khách (VND)',
 };
 const rules = ['max_per_symbol', 'max_per_sector', 'window_days', 'cooldown_days',
                'utility_tolerance', 'daily_requests', 'speed'];
 const states = {paused:'Tạm dừng', running:'Đang chạy', completed:'Hoàn tất', failed:'Đã dừng do lỗi'};
 const reasons = {SYMBOL_EXPOSURE_CAP:'Đạt giới hạn mã', SECTOR_EXPOSURE_CAP:'Đạt giới hạn ngành',
                  CUSTOMER_REPEAT_COOLDOWN:'Khách vừa nhận mã'};
+const orderLabels = {WAIT_SIGNAL:'Chờ tín hiệu mua', NO_SELECTION:'Không có mã phù hợp',
+  CASH_RISK_OR_HOLDINGS_BELOW_MINIMUM_LOT:'Vốn, rủi ro hoặc vị thế dưới một lô'};
 const number = value => value.toLocaleString('vi-VN');
 const dateLabel = value => value.split('-').reverse().join('/');
 const asFields = form => Object.fromEntries(Array.from(new FormData(form), ([name, value]) =>
-  [name, name === 'start_date' ? value : Number(value)]));
+  [name, ['start_date','mode'].includes(name) ? value : Number(value)]));
 
 function NumberField({name, config, limits}) {
   return <label>{labels[name]}<input type="number" name={name} defaultValue={config[name]} required
@@ -26,6 +29,7 @@ function NumberField({name, config, limits}) {
 
 function ScenarioForm({defaults, limits, busy, create}) {
   const [days, setDays] = useState(defaults.days);
+  const [mode,setMode] = useState(defaults.mode);
   return <form className="dl-form" onSubmit={e => {e.preventDefault(); create(asFields(e.currentTarget));}}>
     <fieldset disabled={busy}>
       <div className="dl-duration"><label>Thời gian mô phỏng (ngày)
@@ -36,9 +40,12 @@ function ScenarioForm({defaults, limits, busy, create}) {
           <button type="button" onClick={()=>setDays(1 + Math.floor(Math.random()*limits.days[1]))}>Ngẫu nhiên</button>
         </div>
       </div>
-      <div className="dl-fields"><label>Ngày bắt đầu<input type="date" name="start_date" min="2000-01-01"
-        max="2099-12-31" defaultValue={defaults.start_date} required/></label>
+      <div className="dl-fields"><label>Nguồn dữ liệu<select name="mode" value={mode} onChange={e=>setMode(e.target.value)}>
+        <option value="historical">HOSE · phát lại 2024–2025</option><option value="benchmark">Kiểm thử hạn mức · mã SIM</option>
+      </select></label><label>Ngày bắt đầu<input type="date" name="start_date" min={mode==='historical'?'2024-01-01':'2000-01-01'}
+        max={mode==='historical'?'2025-12-31':'2099-12-31'} defaultValue={defaults.start_date} required/></label>
         <NumberField name="customers" config={defaults} limits={limits}/>
+        {mode==='historical' && <NumberField name="initial_cash" config={defaults} limits={limits}/>}
         <NumberField name="seed" config={defaults} limits={limits}/>
       </div>
       <details><summary>Thông số thuật toán và tốc độ</summary><div className="dl-fields">
@@ -48,19 +55,19 @@ function ScenarioForm({defaults, limits, busy, create}) {
   </form>;
 }
 
-function Trend({history}) {
+export function Trend({history, trades=false}) {
   const size = Math.max(1, Math.ceil(history.length/32));
   const buckets = [];
   for (let i=0; i<history.length; i+=size) {
     const days = history.slice(i, i+size);
     buckets.push({first:days[0].day, last:days.at(-1).day,
-      selected:days.reduce((sum,d)=>sum+d.selected,0), withheld:days.reduce((sum,d)=>sum+d.withheld,0)});
+      selected:days.reduce((sum,d)=>sum+(trades?d.paper.buys:d.selected),0), withheld:days.reduce((sum,d)=>sum+(trades?d.paper.sells:d.withheld),0)});
   }
   const max = Math.max(1, ...buckets.map(b=>b.selected+b.withheld));
-  return <section className="dl-card"><h3>Yêu cầu theo thời gian</h3>
-    <div className="dl-legend"><span>Đã gợi ý</span><span>Giữ lại</span></div>
+  return <section className="dl-card"><h3>{trades?'Giao dịch theo thời gian':'Yêu cầu theo thời gian'}</h3>
+    <div className="dl-legend"><span>{trades?'Mua':'Đã gợi ý'}</span><span>{trades?'Bán':'Giữ lại'}</span></div>
     {history.length ? <><div className="dl-chart" role="list" aria-label="Lượng yêu cầu theo kỳ">
-      {buckets.map(b=>{const label='Ngày '+b.first+'–'+b.last+' · '+b.selected+' đã gợi ý · '+b.withheld+' giữ lại';
+      {buckets.map(b=>{const label='Ngày '+b.first+'–'+b.last+' · '+b.selected+(trades?' mua · ':' đã gợi ý · ')+b.withheld+(trades?' bán':' giữ lại');
         return <div key={b.first} role="listitem" title={label} aria-label={label}>
           <i style={{height:100*b.withheld/max+'%'}}/><i style={{height:100*b.selected/max+'%'}}/>
         </div>;})}</div><div className="dl-axis"><span>{dateLabel(history[0].date)}</span>
@@ -96,11 +103,13 @@ function Results({run}) {
       <div className="dl-reasons">{Object.entries(reasons).map(([k,label])=>
         <span key={k}>{label} <b>{number(run.reasons[k] || 0)}</b></span>)}</div>
       <p>Số yêu cầu gặp từng giới hạn trong cả lượt chạy. Một yêu cầu có thể gặp nhiều giới hạn.</p>
-      {run.events.length ? <div className="dl-scroll"><table><thead><tr>{['Ngày · UTC','Khách hàng','Ưu tiên ban đầu','Kết quả','Lý do đổi hoặc giữ lại'].map(s=><th key={s}>{s}</th>)}</tr></thead>
+      {run.events.length ? <div className="dl-scroll"><table><thead><tr>{['Ngày · UTC','Khách hàng','Ưu tiên ban đầu','Kết quả','Lý do đổi hoặc giữ lại',...(run.paper?['Hành động của khách']:[])].map(s=><th key={s}>{s}</th>)}</tr></thead>
         <tbody>{run.events.map(e=><tr key={e.date+'-'+e.second}>
           <td>{dateLabel(e.date)} · {new Date(e.second*1000).toISOString().slice(11,19)}</td>
-          <td>{e.customer}</td><td>{e.preferred}</td><td><b>{e.symbol || 'Giữ lại'}</b></td>
-          <td>{e.reasons.map(r=>reasons[r] || r).join(', ') || '—'}</td></tr>)}</tbody></table></div>
+          <td>{e.customer}</td><td>{e.preferred || '—'}</td><td><b>{e.symbol || 'Giữ lại'}</b></td>
+          <td>{e.reasons.map(r=>reasons[r] || r).join(', ') || '—'}</td>
+          {run.paper && <td>{e.profile} · {e.order.status==='PAPER_FILL'?
+            e.order.side+' '+e.order.quantity+' '+e.order.symbol:(orderLabels[e.order.status] || e.order.status)}</td>}</tr>)}</tbody></table></div>
         : <p>Chưa phát sinh yêu cầu.</p>}
     </section>
     <details className="dl-card"><summary>Lịch sử điều chỉnh ({run.changes.length})</summary>
@@ -176,8 +185,9 @@ export default function DistributionLab({onExpired}) {
   }
   const active=run && ['running','paused'].includes(run.status);
   return <section className="distribution-lab">
-    <header className="dl-head"><div><h1>Distribution Lab</h1>
-      <p>Mô phỏng cách thuật toán phân phối gợi ý giữa các khách hàng giả lập.</p></div>
+    <header className="dl-head"><div><h2>Distribution Lab</h2>
+      <p>{run?.config.mode==='benchmark'?'Kiểm thử giới hạn với điểm và mã giả lập.':
+        'Khách hàng giả lập · Chỉ báo PASION · Lịch sử giá DNSE · VND'}</p></div>
       {run && <button onClick={()=>exportRun(data.engine,run)}>Xuất kết quả JSON</button>}</header>
     {offline && <p role="alert" className="dl-error">{offline}</p>}
     {error && <p role="alert" className="dl-error">{error}</p>}
@@ -205,6 +215,7 @@ export default function DistributionLab({onExpired}) {
       ['Đã gợi ý',run.totals.selected],['Trong đó đổi mã',run.totals.redirected],['Giữ lại',run.totals.withheld]]
       .map(([label,value])=><div key={label}><span>{label}</span><strong>{number(value)}</strong></div>)}</div>
       {active && <LiveControls key={run.id} run={run} limits={data.limits} busy={busy} send={send}/>}
+      {run.config.mode==='historical' && <PaperTrading run={run} chart={<Trend trades history={run.history}/>}/>}
       <Results run={run}/>
     </>}
   </section>;

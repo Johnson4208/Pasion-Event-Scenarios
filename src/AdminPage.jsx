@@ -3,7 +3,6 @@ import BrandLogo from './BrandLogo';
 import Dialog from './Dialog';
 import AdminDocuments from './AdminDocuments';
 import NewsReviewQueue from './NewsReviewQueue';
-import DistributionLab from './DistributionLab';
 import DistributionDesk from './DistributionDesk';
 import AdminTradingMonitor from './AdminTradingMonitor';
 import OperationalHealth from './OperationalHealth';
@@ -44,10 +43,9 @@ export default function AdminPage({onBack,onExpired}) {
     <button type="button" aria-pressed={section==='news'} onClick={()=>setSection('news')}>{t('News research review')}</button>
     <button type="button" aria-pressed={section==='monitor'} onClick={()=>setSection('monitor')}>Trading & Distribution Monitor</button>
     <button type="button" aria-pressed={section==='distribution'} onClick={()=>setSection('distribution')}>{t('Shadow Distribution')}</button>
-    <button type="button" aria-pressed={section==='lab'} onClick={()=>setSection('lab')}>Distribution Lab</button>
     <button type="button" aria-pressed={section==='health'} onClick={()=>setSection('health')}>{t('Operational health')}</button>
    </nav>
-   {section==='lab'?<DistributionLab onExpired={onExpired}/>:section==='monitor'?<AdminTradingMonitor/>:section==='health'?<OperationalHealth/>:section==='distribution'?<DistributionDesk/>:section==='news'?<NewsReviewQueue onExpired={onExpired}/>:section==='documents'?<AdminDocuments onExpired={onExpired}/>:<>
+   {section==='monitor'?<AdminTradingMonitor onExpired={onExpired}/>:section==='health'?<OperationalHealth/>:section==='distribution'?<DistributionDesk/>:section==='news'?<NewsReviewQueue onExpired={onExpired}/>:section==='documents'?<AdminDocuments onExpired={onExpired}/>:<>
    <div className="admin-title"><div><p className="eyebrow">{t("ADMINISTRATION")}</p><h1>{t("Account management")}</h1><p>{t("View and manage all PASION accounts.")}</p></div><button className="secondary" onClick={load} disabled={busy||loading}>{t("Refresh accounts")}</button></div>
    <div className="admin-stats"><div><strong>{accounts.length}</strong><span>{t("Total accounts")}</span></div><div><strong>{accounts.filter(a=>!a.disabled).length}</strong><span>{t("Active accounts")}</span></div><div><strong>{accounts.filter(a=>a.disabled).length}</strong><span>{t("Disabled accounts")}</span></div></div>
    <section className="admin-add"><h2>{t("Add administrator")}</h2><p className="admin-note">{t("Choose an active account to give it access to account management.")}</p><form onSubmit={e=>{e.preventDefault();const account=accounts.find(a=>a.email===adminEmail);if(account){setNotice(null);setEditing({account,action:'grant-admin'});}}}><div className="field"><label htmlFor="new-admin">{t("Account")}</label><select id="new-admin" value={adminEmail} onChange={e=>setAdminEmail(e.target.value)} required disabled={loading||busy}><option value="">{t("Select an account")}</option>{accounts.filter(a=>!a.isAdmin&&!a.disabled).map(a=><option value={a.email} key={a.email}>{a.name} — {a.email}</option>)}</select></div><button className="primary" disabled={busy||loading||!accounts.some(a=>a.email===adminEmail&&!a.isAdmin&&!a.disabled)}>{t("Add administrator")}</button></form></section>

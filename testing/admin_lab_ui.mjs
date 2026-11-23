@@ -49,12 +49,12 @@ try {
   assert.equal(login.status(),200);
   assert.equal((await login.json()).isAdmin,true);
   const button=name=>page.getByRole('button',{name,exact:true});
-  const open=async()=>{await page.goto(url+'/#admin');await button('Distribution Lab').click();};
+  const open=async()=>{await page.goto(url+'/#admin');await button('Trading & Distribution Monitor').click();};
   const state=async()=>(await (await page.request.get(url+'/api/admin/distribution/lab')).json()).run;
   async function create(horizon) {
     await button(horizon).click();
     await page.getByText('Thông số thuật toán và tốc độ',{exact:true}).click();
-    await page.locator('[name=speed]').fill('60');
+    await page.locator('[name=speed]').fill(horizon==='1 năm'?'12':'60');
     await button('Tạo lượt mô phỏng').click();
     await button('Tiến 1 ngày').waitFor();
   }
@@ -79,11 +79,12 @@ try {
   assert.equal(paused.status,'paused');
   await page.getByText('Chỉnh giới hạn và tốc độ',{exact:true}).click();
   await page.locator('[name=max_per_symbol]').fill('2');
+  await page.locator('[name=speed]').fill('60');
   const saved=page.waitForResponse(r=>r.url().endsWith('/lab') && r.request().method()==='POST');
   await button('Áp dụng thông số').click();
   assert.equal((await saved).status(),200);
   await page.reload();
-  await button('Distribution Lab').click();
+  await button('Trading & Distribution Monitor').click();
   assert.equal((await state()).day,paused.day);
   assert.equal((await state()).config.max_per_symbol,2);
   const one=await finish();
@@ -93,6 +94,16 @@ try {
   await button('Lượt mới').click();
   await create('2 năm');
   const two=await finish();
+  assert.ok(two.paper.totals.buys>0 && two.paper.totals.sells>0);
+  assert.equal(two.paper.totals.notional,two.history.reduce((sum,d)=>sum+d.paper.notional,0));
+  await page.getByRole('heading',{name:'Sổ giao dịch mô phỏng'}).waitFor();
+  assert.ok((await page.locator('.dl-paper').innerText()).includes(two.paper.top_accounts[0].customer));
+  await button('Sổ tài khoản & Shadow').click();
+  await page.getByRole('heading',{name:'Account activity'}).waitFor();
+  await page.getByText('No eligible manual trade records',{exact:true}).waitFor();
+  await button('Distribution Lab').click();
+  await page.getByText('Hoàn tất',{exact:true}).waitFor();
+  assert.equal((await state()).id,two.id);
   assert.equal(two.day,730);
   assert.equal(two.totals.selected+two.totals.withheld,two.totals.requests);
   const download=page.waitForEvent('download');
@@ -104,7 +115,7 @@ try {
   const widths=await page.locator('.distribution-lab').evaluate(el=>[el.getBoundingClientRect().width,el.scrollWidth]);
   assert.ok(widths[1]<=widths[0]+1,JSON.stringify(widths));
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({oneYear:one.totals,twoYears:two.totals,exportDays:contents.run.history.length}));
+  console.log(JSON.stringify({oneYear:one.totals,twoYears:two.totals,paper:two.paper.totals,exportDays:contents.run.history.length}));
 } finally {
   await browser?.close();
   await vite?.close();

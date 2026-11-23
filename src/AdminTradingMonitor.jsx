@@ -1,9 +1,23 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import './admin-trading-monitor.scss';
+import DistributionLab from './DistributionLab';
 
 const fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2});
 const empty='—';
-export default function AdminTradingMonitor(){
+export default function AdminTradingMonitor({onExpired}) {
+ const local=['localhost','127.0.0.1','[::1]'].includes(window.location.hostname);
+ const [mode,setMode]=useState(local?'lab':'records');
+ return <section className="trading-monitor">
+  <header className="atm-heading"><h1>Trading &amp; Distribution Monitor</h1></header>
+  <nav className="atm-tabs" aria-label="Nguồn hoạt động">
+   <button type="button" aria-pressed={mode==='lab'} onClick={()=>setMode('lab')}>Distribution Lab</button>
+   <button type="button" aria-pressed={mode==='records'} onClick={()=>setMode('records')}>Sổ tài khoản &amp; Shadow</button>
+  </nav>
+  {mode==='lab'?<DistributionLab onExpired={onExpired}/>:<AccountMonitor/>}
+ </section>;
+}
+
+function AccountMonitor(){
  const [data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[currency,setCurrency]=useState(''),[tab,setTab]=useState('Overview');
  async function refresh(){setLoading(true);setError('');try{const r=await fetch('/api/admin/distribution/monitor',{credentials:'same-origin'});if(!r.ok)throw Error(r.status===403?'Administrator permission required':'Monitor endpoint unavailable');setData(await r.json());}catch(e){setError(e.message);}finally{setLoading(false)}}
  useEffect(()=>{refresh()},[]);
@@ -15,7 +29,7 @@ export default function AdminTradingMonitor(){
  const events=data?.distribution?.recent_events||[];
  const candidates=data?.distribution?.recent_candidates||[];
  return <div className="atm-root">
-  <header className="atm-heading"><div><span className="atm-kicker">PASION / ADMIN INTELLIGENCE</span><h1>Trading & Distribution Monitor</h1><p>Private oversight of manual account activity, candidate admission and simulated capacity. No broker execution is inferred.</p></div><button className="atm-refresh" onClick={refresh} disabled={loading}>{loading?'Loading…':'↻ Refresh data'}</button></header>
+  <header className="atm-heading"><div><h2>Account activity</h2><p>Private oversight of manual account activity, candidate admission and simulated capacity. No broker execution is inferred.</p></div><button className="atm-refresh" onClick={refresh} disabled={loading}>{loading?'Loading…':'↻ Refresh data'}</button></header>
   <div className="atm-notice" role="status"><b>Research / shadow mode</b><span>Broker-confirmed trading volume and top executed traders are unavailable until verified fills are connected. Manual entries and shadow slots are shown separately.</span></div>
   {error&&<div role="alert" className="atm-error">{error}. This view requires the full PASION backend, not the static GitHub Pages demo.</div>}
   <div className="atm-tabs">{['Overview','Top accounts','Distribution activity'].map(x=><button key={x} onClick={()=>setTab(x)} aria-pressed={tab===x}>{x}</button>)}</div>

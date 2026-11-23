@@ -1,5 +1,7 @@
 import http.client
 import json
+from collections import Counter
+from datetime import date
 import sqlite3
 import time
 import unittest
@@ -7,13 +9,13 @@ from unittest.mock import patch
 
 import server
 import test_server
-from distribution import recommendations
+from distribution import recommendations, paper_market
 from distribution.lab import Conflict, DEFAULTS, Lab, Run
 
 
 class SimulationTests(unittest.TestCase):
     def make_run(self, **options):
-        run = Run({**DEFAULTS, **options})
+        run = Run({**DEFAULTS, 'mode':'benchmark', 'start_date':'2025-01-01', **options})
         self.addCleanup(run.directory.cleanup)
         return run
 
@@ -86,6 +88,67 @@ class SimulationTests(unittest.TestCase):
         self.assertFalse(old_db.exists())
         self.assertEqual(fresh['day'], 0)
         self.assertEqual(send('step')['status'], 'completed')
+
+    def test_replay_orders_reconcile_and_reference_prior_session(self):
+        run = self.make_run(mode='historical', start_date='2024-01-01', days=90, customers=3)
+        for _ in range(90):
+            run.advance()
+        self.assertEqual(run.history[0]['requests'], 0)  # New Year's Day
+        totals = run.paper['totals']
+        self.assertGreater(totals['buys'], 0)
+        self.assertGreater(totals['sells'], 0)
+        self.assertEqual(totals['notional'], sum(day['paper']['notional'] for day in run.history))
+        cash, positions = {}, Counter()
+        with sqlite3.connect(run.db) as db:
+            for customer,symbol,side,qty,price,signal_day,day,request in db.execute(
+                    'SELECT customer,symbol,side,quantity,price,signal_date,day,request FROM paper_fills ORDER BY id'):
+                self.assertLess(date.fromisoformat(signal_day),date.fromisoformat(day))
+                self.assertEqual(qty % 100, 0)
+                bars, indices, _ = paper_market.tape(symbol)
+                self.assertEqual(price, bars[indices[day]]['open'])
+                self.assertEqual(signal_day, bars[indices[day]-1]['date'])
+                value = qty*price
+                if side == 'BUY':
+                    decision = json.loads(db.execute('SELECT result FROM recommendation_requests WHERE id=?',(request,)).fetchone()[0])
+                    self.assertEqual(decision['symbol'],symbol)
+                positions[customer,symbol] += qty if side=='BUY' else -qty
+                cash[customer] = cash.get(customer,run.config['initial_cash']) + (value if side=='SELL' else -value) - value//1000
+                self.assertGreaterEqual(positions[customer,symbol],0)
+                self.assertGreaterEqual(cash[customer],0)
+            self.assertEqual(cash,dict(db.execute('SELECT customer,cash FROM paper_accounts')))
+        self.assertEqual(totals['buys']+totals['sells'],sum(row['trades'] for row in run.paper['top_accounts']))
+
+    def test_replay_failure_rolls_back_both_ledgers(self):
+        run = self.make_run(mode='historical', start_date='2024-01-02', days=1)
+        with patch.object(paper_market,'monitor',side_effect=sqlite3.OperationalError('rollback')):
+            with self.assertRaises(sqlite3.OperationalError):
+                run.advance()
+        self.assertEqual(run.day,0)
+        self.assertIsNone(run.paper)
+        with sqlite3.connect(run.db) as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM recommendation_requests').fetchone()[0],0)
+        run.advance()
+        self.assertEqual(run.day,1)
+        self.assertEqual(sum(s['notional'] for s in run.paper['symbols']),run.history[0]['paper']['notional'])
+
+    def test_replay_uses_no_execution_day_data_for_ranking(self):
+        day = '2024-05-10'
+        expected, opens = paper_market.session(day)
+        original = paper_market.tape
+        def different_market(symbol):
+            bars, indices, events = original(symbol)
+            i = indices[day]
+            altered = [dict(b,open=b['open']*2,close=b['close']*2,volume=0) for b in bars[i:]]
+            return bars[:i]+altered, indices, events
+        with patch.object(paper_market,'tape',different_market):
+            actual, new_opens = paper_market.session.__wrapped__(day)
+        self.assertEqual(expected,actual)
+        self.assertNotEqual(opens,new_opens)
+        ranks = [paper_market.candidates_for(expected,profile) for profile in range(3)]
+        self.assertNotEqual(ranks[0],ranks[1])
+        service = Lab()
+        with self.assertRaises(ValueError):
+            service.command(dict(action='create',revision=0,values={'start_date':'2025-12-31','days':2}))
 
 
 class AdminApiTests(unittest.TestCase):

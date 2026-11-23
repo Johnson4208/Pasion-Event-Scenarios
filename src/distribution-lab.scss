@@ -59,3 +59,14 @@
   .dl-error { padding:12px; border:1px solid #ce7b71; border-radius:8px; }
   @media(max-width:720px) { .dl-grid {grid-template-columns:1fr;} .dl-card {padding:15px;} }
 }
+
+.trading-monitor { min-width: 0; --atm-brand:var(--pref-accent,#2776bd); --atm-line:var(--pref-border,#d5e1e9); --atm-muted:var(--pref-muted,#526b7d); }
+.trading-monitor > .atm-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.distribution-lab {
+  .dl-paper { display: grid; gap: 12px; min-width: 0; }
+  .dl-paper .dl-kpis > div:last-child { grid-column: span 2; }
+  .dl-paper .dl-kpis strong { font-size: clamp(17px,2vw,24px); overflow-wrap: anywhere; }
+  .dl-paper details { margin: 0; }
+  select { font: inherit; min-width: 0; width: 100%; min-height: 38px; border: 1px solid var(--pref-border); border-radius: 8px; padding: 6px; color: inherit; background: var(--pref-surface,white); }
+  @media (max-width: 720px) { .dl-paper .dl-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+}
