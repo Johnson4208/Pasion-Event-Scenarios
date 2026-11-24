@@ -10,15 +10,19 @@
     }
     handle {
         route {
-            forward_auth 127.0.0.1:8000 {
-                uri /api/permissions
+            reverse_proxy 127.0.0.1:8000 {
+                method GET
+                rewrite /api/permissions
                 @guest status 401
                 handle_response @guest {
                     redir /access 303
                 }
+                @approved status 200
+                handle_response @approved {
+                    root * /srv/pasion/dist
+                    file_server
+                }
             }
-            root * /srv/pasion/dist
-            file_server
         }
     }
 }
