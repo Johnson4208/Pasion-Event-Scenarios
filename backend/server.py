@@ -1265,13 +1265,14 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     if PRODUCTION and not ADMIN_EMAIL:
         raise SystemExit('Set PASION_ADMIN_EMAIL before starting production mode.')
+    port = int(os.environ.get('PASION_PORT', '8000'))
     try:
         with database():
             pass  # Finish account migrations before accepting concurrent requests.
-        http = ExclusiveHTTPServer(('127.0.0.1', 8000), Handler)
+        http = ExclusiveHTTPServer(('127.0.0.1', port), Handler)
     except OSError as error:
-        raise SystemExit('Unable to start PASION API on 127.0.0.1:8000. Another backend may already be running. Stop it before starting a new instance. ' + str(error))
+        raise SystemExit(f'Unable to start PASION API on 127.0.0.1:{port}. Another backend may already be running. Stop it before starting a new instance. ' + str(error))
     document_service.resume_processing(ROOT)
-    print('PASION API running at http://127.0.0.1:8000', flush=True)
+    print(f'PASION API running at http://127.0.0.1:{port}', flush=True)
     http.serve_forever()
 
