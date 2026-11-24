@@ -1,0 +1,15 @@
+name: Check Windows public launcher
+on:
+  push:
+    paths: ['deploy/start-public.ps1', '.github/workflows/windows-launcher.yml']
+jobs:
+  syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path deploy/start-public.ps1).Path, [ref]$tokens, [ref]$errors)
+          if ($errors.Count) { throw ($errors -join [Environment]::NewLine) }

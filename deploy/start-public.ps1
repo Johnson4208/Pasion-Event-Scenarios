@@ -19,7 +19,12 @@ if ($LASTEXITCODE) { throw 'npm ci failed.' }
 if ($LASTEXITCODE) { throw 'Frontend build failed.' }
 $config = Get-Content deploy/Caddyfile -Raw
 $config = $config.Replace('{$PASION_DOMAIN} {','http://127.0.0.1:18180 {' + [Environment]::NewLine + '    bind 127.0.0.1').Replace('127.0.0.1:8000','127.0.0.1:18181').Replace('/srv/pasion/deploy','./deploy').Replace('/srv/pasion/dist','./dist')
-$config = [regex]::Replace($config, '(?m)reverse_proxy 127\.0\.0\.1:18181\r? "reverse_proxy 127.0.0.1:18181 {" + [Environment]::NewLine + "            header_up Host $env:PASION_DOMAIN" + [Environment]::NewLine + '        }')
+$upstream = @"
+reverse_proxy 127.0.0.1:18181 {
+            header_up Host $env:PASION_DOMAIN
+        }
+"@
+$config = [regex]::Replace($config, '(?m)reverse_proxy 127\.0\.0\.1:18181\r?$', $upstream)
 $configFile = [IO.Path]::GetTempFileName()
 try {
     [IO.File]::WriteAllText($configFile, "{"+[Environment]::NewLine+"admin off"+[Environment]::NewLine+"auto_https off"+[Environment]::NewLine+"}"+[Environment]::NewLine+$config)
@@ -53,35 +58,6 @@ try {
     }
     $login = Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:18180/access'
     if ($login.Content -notmatch '/api/login') { throw 'PASION sign-in page unavailable.' }
-    Write-Host "PASION_DOMAIN=$env:PASION_DOMAIN"
-    Write-Host 'Keep this window open. Ctrl+C stops public access.'
-    & tailscale funnel 18180
-    if ($LASTEXITCODE) { throw 'Funnel stopped. Check the Tailscale message above.' }
-} finally {
-    foreach ($process in @($proxy,$api)) { if ($process -and !$process.HasExited) { $process.Kill(); $process.WaitForExit() } }
-    Remove-Item -LiteralPath $configFile -ErrorAction SilentlyContinue
-}
-, "reverse_proxy 127.0.0.1:18181 {" + [Environment]::NewLine + "            header_up Host $env:PASION_DOMAIN" + [Environment]::NewLine + '        }')
-$configFile = [IO.Path]::GetTempFileName()
-try {
-    [IO.File]::WriteAllText($configFile, "{"+[Environment]::NewLine+"admin off"+[Environment]::NewLine+"auto_https off"+[Environment]::NewLine+"}"+[Environment]::NewLine+$config)
-    & caddy validate --adapter caddyfile --config $configFile
-    if ($LASTEXITCODE) { throw 'Proxy configuration failed validation.' }
-    $api = Start-Process $python -ArgumentList 'backend/server.py' -NoNewWindow -PassThru
-    $proxy = Start-Process caddy -ArgumentList ('run --adapter caddyfile --config "'+$configFile+'"') -NoNewWindow -PassThru
-    $ready = $false
-    for ($i=0; $i -lt 30; $i++) {
-        if ($api.HasExited -or $proxy.HasExited) { throw 'Backend or proxy stopped.' }
-        try {
-            $session = Invoke-RestMethod 'http://127.0.0.1:18180/api/session'
-            $ready = $session.authenticated -eq $false
-        } catch {}
-        if ($ready) { break }
-        Start-Sleep -Seconds 1
-    }
-    if (!$ready) { throw 'Backend did not become ready.' }
-    $gate = Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:18180/'
-    if ($gate.BaseResponse.ResponseUri.AbsolutePath -ne '/access') { throw 'Private workspace gate did not redirect to /access.' }
     Write-Host "PASION_DOMAIN=$env:PASION_DOMAIN"
     Write-Host 'Keep this window open. Ctrl+C stops public access.'
     & tailscale funnel 18180
