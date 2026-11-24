@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PASION · Truy cập</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f7fb;color:#163852;font:16px/1.5 system-ui}main{max-width:25rem;margin:10vh auto;background:white;padding:2rem;border:1px solid #d9e4ed;border-radius:14px}h1{margin:.3rem 0 1rem}label{display:block;margin:.8rem 0}input,button{width:100%;padding:.7rem;font:inherit;border:1px solid #abbfce;border-radius:6px}button{cursor:pointer}button[type=submit]{background:#164f83;color:white;margin:.7rem 0}button[type=button]{color:#164f83;background:white}p{min-height:1.5em}
+</style>
+<main><strong>PASION</strong><h1>Đăng nhập</h1><form method="post" action="/api/login">
+<label hidden id="full" style="display:none">Họ tên<input name="name" maxlength="100" autocomplete="name"></label>
+<label>Email<input name="email" type="email" required autocomplete="username"></label>
+<label>Mật khẩu<input name="password" type="password" required maxlength="1024" autocomplete="current-password"></label>
+<button type="submit">Đăng nhập</button></form><button type="button" id="toggle">Yêu cầu tài khoản mới</button>
+<p role="status"></p></main>
+<script>
+const form=document.querySelector('form'), title=document.querySelector('h1'), notice=document.querySelector('[role=status]'), toggle=document.querySelector('#toggle');
+let register=false;
+toggle.onclick=()=>{
+ register=!register;
+ const full=document.querySelector('#full');
+ full.hidden=!register;full.style.display=register?'block':'none';
+ form.elements.name.required=register;
+ form.elements.password.autocomplete=register?'new-password':'current-password';
+ form.elements.password.minLength=register?8:1;
+ title.textContent=form.querySelector('button').textContent=register?'Yêu cầu truy cập':'Đăng nhập';
+ toggle.textContent=register?'Quay lại đăng nhập':'Yêu cầu tài khoản mới';
+ notice.textContent='';
+};
+form.onsubmit=async event=>{
+ event.preventDefault();
+ const submit=form.querySelector('button');submit.disabled=toggle.disabled=true;
+ try{
+  const response=await fetch(register?'/api/register':'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+  const data=await response.json();
+  if(response.ok&&!register){location.replace('/');return}
+  notice.textContent=data.message==='Your account is awaiting owner approval.'?'Tài khoản đang chờ chủ hệ thống duyệt. Bạn có thể đăng nhập sau khi được cấp quyền.':data.message;
+  form.elements.password.value='';
+ }catch{notice.textContent='Không kết nối được máy chủ. Vui lòng thử lại.'}
+ finally{submit.disabled=toggle.disabled=false}
+};
+</script></html>

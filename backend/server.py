@@ -85,6 +85,8 @@ def database():
         with db:
             db.execute('CREATE TABLE IF NOT EXISTS accounts (email TEXT PRIMARY KEY, name TEXT NOT NULL, salt BLOB NOT NULL, password_hash BLOB NOT NULL)')
             columns = {row[1] for row in db.execute('PRAGMA table_info(accounts)')}
+            if 'approval_pending' not in columns:
+                db.execute('ALTER TABLE accounts ADD COLUMN approval_pending INTEGER NOT NULL DEFAULT 0')
             if 'disabled' not in columns:
                 db.execute('ALTER TABLE accounts ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
             if 'created' not in columns:
@@ -202,9 +204,16 @@ class Handler(BaseHTTPRequestHandler):
             local_origin = origin is None or urlparse(origin).hostname in local_hosts
         except ValueError:
             host, local_origin = None, False
-        if (PRODUCTION or host not in local_hosts or self.client_address[0] not in local_hosts
-                or not local_origin or self.headers.get('Sec-Fetch-Site') == 'cross-site'):
-            self.respond(403, {'message': 'Distribution Lab chỉ mở trên localhost ở chế độ phát triển.'})
+        public_domain = os.environ.get('PASION_DOMAIN', '').lower()
+        if PRODUCTION:
+            allowed = (bool(public_domain) and host == public_domain
+                       and self.current_session()['email'].casefold() == ADMIN_EMAIL
+                       and (self.command == 'GET' or origin == 'https://' + public_domain))
+        else:
+            allowed = host in local_hosts and local_origin
+        if (not allowed or self.client_address[0] not in local_hosts
+                or self.headers.get('Sec-Fetch-Site') == 'cross-site'):
+            self.respond(403, {'message': 'Distribution Lab requires local access or the owner on the configured HTTPS site.'})
             return
         try:
             if self.command == 'GET':
@@ -522,7 +531,13 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def policy_guard(self):
-        policy = security.route_policy(urlparse(self.path).path)
+        path = urlparse(self.path).path
+        policy = security.route_policy(path)
+        if PRODUCTION and not policy and path not in {
+            '/api/login', '/api/register', '/api/session', '/api/logout',
+            '/api/forgot-password', '/api/reset-password',
+        }:
+            policy = 'member'
         if not policy:
             return True
         if policy == 'admin':
@@ -726,8 +741,8 @@ class Handler(BaseHTTPRequestHandler):
         session = SESSIONS.get(token)
         if session and session['expires'] > time.time():
             with database() as db:
-                row = db.execute('SELECT disabled FROM accounts WHERE email = ?', (session['email'].casefold(),)).fetchone()
-            if row and not row[0]:
+                row = db.execute('SELECT disabled, approval_pending FROM accounts WHERE email = ?', (session['email'].casefold(),)).fetchone()
+            if row and not any(row):
                 return session
         SESSIONS.pop(token, None)
         return None
@@ -746,8 +761,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.require_admin():
             return
         with database() as db:
-            rows = db.execute('SELECT email, name, disabled, created, is_admin FROM accounts ORDER BY email').fetchall()
-        self.respond(200, {'accounts': [{'email': email, 'name': name, 'disabled': bool(disabled), 'created': created, 'isAdmin': bool(is_admin or email == ADMIN_EMAIL), 'isOwner': email == ADMIN_EMAIL} for email, name, disabled, created, is_admin in rows]})
+            rows = db.execute('SELECT email, name, disabled, created, is_admin, approval_pending FROM accounts ORDER BY approval_pending DESC, email').fetchall()
+        self.respond(200, {'canApprove': self.current_session()['email'].casefold() == ADMIN_EMAIL, 'accounts': [{'email': email, 'name': name, 'disabled': bool(disabled), 'created': created, 'pending': bool(pending), 'isAdmin': bool(is_admin or email == ADMIN_EMAIL), 'isOwner': email == ADMIN_EMAIL} for email, name, disabled, created, is_admin, pending in rows]})
 
     def admin_action(self):
         if not self.require_admin():
@@ -761,10 +776,13 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError()
             email = data['email'].strip().casefold()
             action = data.get('action')
-            if action not in ('rename', 'enable', 'disable', 'reset-password', 'delete', 'grant-admin', 'revoke-admin'):
+            if action not in ('approve', 'rename', 'enable', 'disable', 'reset-password', 'delete', 'grant-admin', 'revoke-admin'):
                 raise ValueError()
         except (ValueError, TypeError, UnicodeDecodeError):
             self.respond(400, {'message': 'Invalid account action.'})
+            return
+        if action == 'approve' and self.current_session()['email'].casefold() != ADMIN_EMAIL:
+            self.respond(403, {'message': 'Only the owner can approve access.'})
             return
         if email == ADMIN_EMAIL and action != 'rename':
             self.respond(400, {'message': 'The owner account is protected. Use Change password to update your own password.'})
@@ -774,7 +792,9 @@ class Handler(BaseHTTPRequestHandler):
             if not db.execute('SELECT 1 FROM accounts WHERE email = ?', (email,)).fetchone():
                 self.respond(404, {'message': 'Account not found.'})
                 return
-            if action == 'rename':
+            if action == 'approve':
+                db.execute('UPDATE accounts SET approval_pending = 0 WHERE email = ?', (email,))
+            elif action == 'rename':
                 name = data.get('name')
                 if not isinstance(name, str) or not 1 <= len(name.strip()) <= 100:
                     self.respond(400, {'message': 'Enter a name of 1 to 100 characters.'})
@@ -1184,13 +1204,19 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path == '/api/login':
             with database() as db:
-                account = db.execute('SELECT salt, password_hash, disabled FROM accounts WHERE email = ?', (email.casefold(),)).fetchone()
+                account = db.execute('SELECT salt, password_hash, disabled, approval_pending FROM accounts WHERE email = ?', (email.casefold(),)).fetchone()
             valid = bool(account and hmac.compare_digest(password_hash(password, account[0]), account[1]))
             if not valid:
                 self.respond(401, {'message': 'Email or password is incorrect.'})
                 return
             if account[2]:
                 self.respond(403, {'message': 'Your account is disabled. Please contact an administrator.'})
+                return
+            if account[3]:
+                self.respond(403, {'message': 'Your account is awaiting owner approval.'})
+                return
+            if PRODUCTION and email.casefold() in (EMAIL.casefold(), 'demo@solvai.com'):
+                self.respond(403, {'message': 'Demo access is disabled on this site.'})
                 return
             token = secrets.token_urlsafe(32)
             duration = 604800 if data.get('remember') == 'true' else 3600
@@ -1215,12 +1241,12 @@ class Handler(BaseHTTPRequestHandler):
             hashed = password_hash(password, salt)
             try:
                 with database() as db:
-                    db.execute('INSERT INTO accounts (email, name, salt, password_hash, created) VALUES (?, ?, ?, ?, ?)', (email.casefold(), name.strip(), salt, hashed, time.time()))
+                    db.execute('INSERT INTO accounts (email, name, salt, password_hash, created, approval_pending) VALUES (?, ?, ?, ?, ?, ?)', (email.casefold(), name.strip(), salt, hashed, time.time(), int(PRODUCTION)))
             except sqlite3.IntegrityError:
                 self.respond(409, {'message': 'An account with this email already exists. Please sign in.'})
                 return
             self.audit_actor = email.casefold()
-            self.respond(201, {'message': 'Account created. You can now sign in.'})
+            self.respond(201, {'message': 'Your account is awaiting owner approval.' if PRODUCTION else 'Account created. You can now sign in.'})
 
     def do_DELETE(self):
         if not self.policy_guard():
@@ -1240,6 +1266,8 @@ if __name__ == '__main__':
     if PRODUCTION and not ADMIN_EMAIL:
         raise SystemExit('Set PASION_ADMIN_EMAIL before starting production mode.')
     try:
+        with database():
+            pass  # Finish account migrations before accepting concurrent requests.
         http = ExclusiveHTTPServer(('127.0.0.1', 8000), Handler)
     except OSError as error:
         raise SystemExit('Unable to start PASION API on 127.0.0.1:8000. Another backend may already be running. Stop it before starting a new instance. ' + str(error))

@@ -1,0 +1,24 @@
+{$PASION_DOMAIN} {
+    header Cache-Control "private, no-store"
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /access {
+        root * /srv/pasion/deploy
+        rewrite * /access.html
+        file_server
+    }
+    handle {
+        route {
+            forward_auth 127.0.0.1:8000 {
+                uri /api/permissions
+                @guest status 401
+                handle_response @guest {
+                    redir /access 303
+                }
+            }
+            root * /srv/pasion/dist
+            file_server
+        }
+    }
+}

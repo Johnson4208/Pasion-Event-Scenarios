@@ -108,6 +108,20 @@ class AdminTests(unittest.TestCase):
         connection.close()
         return result
 
+    def test_production_owner_approval(self):
+        self.authorize()
+        fields = {'name': 'Member', 'email': 'new@example.com', 'password': 'NewTest123!'}
+        action = {'email': fields['email'], 'action': 'approve'}
+        with patch.object(server, 'PRODUCTION', True):
+            self.assertEqual(self.request('/api/register', fields)[0], 201)
+            self.assertEqual(self.request('/api/login', fields)[0], 403)
+            self.assertEqual(self.request('/api/login', {'email': self.email, 'password': 'Original123!'})[0], 200)
+            with server.database() as db:
+                db.execute('UPDATE accounts SET is_admin=1 WHERE email=?', (self.email,))
+            self.assertEqual(self.request('/api/admin/accounts', action)[0], 403)
+            self.assertEqual(self.request('/api/admin/accounts', action, 'admin')[0], 200)
+            self.assertEqual(self.request('/api/login', fields)[0], 200)
+
     def test_admin_access_and_no_password_disclosure(self):
         self.assertEqual(self.get_accounts('missing')[0], 401)
         self.assertEqual(self.get_accounts()[0], 403)
@@ -268,3 +282,4 @@ class PasswordResetTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
