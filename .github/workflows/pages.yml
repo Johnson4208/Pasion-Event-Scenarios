@@ -1,0 +1,41 @@
+name: Publish PASION access page
+on:
+  push:
+    branches: [master]
+    paths: ['deploy/pages.html', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare public entry page
+        env:
+          DOMAIN: ${{ vars.PASION_DOMAIN }}
+        run: |
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          domain = os.environ['DOMAIN'].strip().lower()
+          entry = '<p>Cổng đăng nhập chưa được kết nối. Vui lòng quay lại sau.</p>'
+          if domain:
+              if not re.fullmatch(r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}', domain):
+                  raise ValueError('PASION_DOMAIN must contain a DNS hostname only')
+              entry = f'<p>Dùng tài khoản PASION hiện tại để đăng nhập. Tài khoản mới cần chủ hệ thống duyệt.</p><a href="https://{domain}/access">Đăng nhập hoặc yêu cầu truy cập</a>'
+          target = Path('pages-artifact')
+          target.mkdir()
+          (target / 'index.html').write_text(Path('deploy/pages.html').read_text().replace('<!--ENTRY-->', entry))
+          PY
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-artifact
+      - id: publish
+        uses: actions/deploy-pages@v4
